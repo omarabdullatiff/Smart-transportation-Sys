@@ -99,11 +99,10 @@ class _ForgetpassState extends State<Forgetpass> {
                 child: ElevatedButton(
                   onPressed: () {
                     // Handle password recovery logic
-                    final email = _emailController.text;
-                    print('Password recovery email sent to: $email');
+                    
                     
                     // Navigate to verification screen
-                    Navigator.pushNamed(context, '/verify');
+                    Navigator.pushNamed(context, '/virscreen');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
@@ -137,7 +136,6 @@ class _ForgetpassState extends State<Forgetpass> {
               // Sign Up Prompt
               TextButton(
                 onPressed: () {
-                  Navigator.pushNamed(context,'/verify');
                   },
                 child: RichText(
                   text: TextSpan(

@@ -12,6 +12,7 @@ import 'package:flutter_application_1/seat_select_screan.dart';
 import 'package:flutter_application_1/selectaddress.dart';
 import 'package:flutter_application_1/setting_screen.dart';
 import 'package:flutter_application_1/signup.dart';
+import 'package:flutter_application_1/verification_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/setting':(context) =>  SettingsScreen(),
         '/seatselect':(context) =>  SeatSelectionScreen(),
         '/profile':(context) =>  ProfileEditScreen(),
+        '/virscreen':(context) =>  const VerificationScreen(),
 
         
       },
