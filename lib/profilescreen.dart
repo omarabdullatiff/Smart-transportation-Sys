@@ -1,153 +1,269 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/app_color.dart';
 
-class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({super.key});
 
-  @override
-  State<ProfileEditScreen> createState() => _ProfileEditScreenState();
-}
-
-class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
+class EditProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(
-            color: AppColor.primary,
-          ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColor.primary),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+      backgroundColor: AppColor.background, 
+      body: SingleChildScrollView(
+      
+        // Allows the content to scroll if it exceeds the screen height
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField(
-                controller: _usernameController,
-                label: 'Username',
-                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
-              ),
-              _buildTextField(
-                controller: _nameController,
-                label: 'Name',
-                validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
-              ),
-              _buildPhoneField(),
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return 'Required';
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                    return 'Invalid email format';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primaryDark,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+             
+              // Back Button
+             
+
+              // Profile Image
+              Center(
+                child: Stack(
+                  children: [
+                    const CircleAvatar(
+                      radius: 70,
+                      backgroundImage:
+                          AssetImage('lib/image/navigatorgirl.png'), // Replace with your image
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.black, // Border color
+                            width: 0.2, // Border width
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.add_a_photo),
+                          onPressed: () {
+                            // Handle image upload
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                onPressed: _saveProfile,
-                child: const Text('Save'),
+              ),
+              const SizedBox(height: 30),
+
+              // Username
+             
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.7),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'User Name',
+                    hintText: 'Enter Your User Name',
+                    labelStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                    ),
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 245, 245, 244),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF91A800), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Name
+             
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.7),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Enter Your  Name',
+                    labelStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                    ),
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 251, 251, 251),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF91A800), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Phone
+             
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.7),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    prefixText: '+20',
+                    labelText: 'Phone',
+                    hintText: 'Enter Your Phone',
+                    labelStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                    ),
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 255, 255, 255),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF91A800), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Email
+            
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.7),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'example@gmail.com',
+                    labelStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                    ),
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 255, 255, 254),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF91A800), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primaryDark,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  onPressed: () {
+                    // Handle save
+                  },
+                  child: const Text(
+                    "Save",
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primary), // Custom border color
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primary), // Custom border color when not focused
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primaryDark), // Custom border color when focused
-          ),
-          filled: true,
-          fillColor: Colors.grey[200], // Optional: Add a light background color
-        ),
-        keyboardType: keyboardType,
-        validator: validator,
-      ),
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextFormField(
-        controller: _phoneController,
-        decoration: InputDecoration(
-          labelText: 'Phone',
-          border: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primary), // Custom border color
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primary), // Custom border color when not focused
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColor.primaryDark), // Custom border color when focused
-          ),
-          filled: true,
-          fillColor: Colors.grey[200], // Optional: Add a light background color
-          prefixText: '+20 ',
-        ),
-        keyboardType: TextInputType.phone,
-        validator: (value) {
-          if (value?.isEmpty ?? true) return 'Required';
-          if (value!.length != 10) return 'Must be 10 digits';
-          return null;
-        },
-      ),
-    );
-  }
-
-  void _saveProfile() {
-    if (_formKey.currentState!.validate()) {
-      // Save logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully')),
-      );
-    }
   }
 }

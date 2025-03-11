@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
         '/buslist':(context) =>  BusListView(),
         '/setting':(context) =>  SettingsScreen(),
         '/seatselect':(context) =>  SeatSelectionScreen(),
-        '/profile':(context) =>  ProfileEditScreen(),
+        '/profile':(context) =>  EditProfileScreen(),
         '/virscreen':(context) =>  const VerificationScreen(),
 
         
