@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/app_color.dart';
 
 class Forgetpass extends StatefulWidget {
@@ -10,6 +12,52 @@ class Forgetpass extends StatefulWidget {
 
 class _ForgetpassState extends State<Forgetpass> {
   final TextEditingController _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _sendResetEmail() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Account/reset-password-request'),
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': '*/*',
+        },
+        body: jsonEncode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Check your email for the code.')),
+        );
+        Navigator.pushNamed(context, '/virscreen');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send email: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Something went wrong. Please try again.')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +71,6 @@ class _ForgetpassState extends State<Forgetpass> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 4),
-              // Header Text
               Text(
                 'Forgot Password?',
                 style: TextStyle(
@@ -33,7 +80,6 @@ class _ForgetpassState extends State<Forgetpass> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Instruction Text
               const Text(
                 'Simply enter your email to\nrecover your account',
                 style: TextStyle(
@@ -44,7 +90,6 @@ class _ForgetpassState extends State<Forgetpass> {
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 1),
-              // Email Input Field
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -78,7 +123,7 @@ class _ForgetpassState extends State<Forgetpass> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: AppColor.primary, 
+                        color: AppColor.primary,
                         width: 2,
                       ),
                     ),
@@ -93,17 +138,10 @@ class _ForgetpassState extends State<Forgetpass> {
                 ),
               ),
               const SizedBox(height: 35),
-              // Send Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Handle password recovery logic
-                    
-                    
-                    // Navigate to verification screen
-                    Navigator.pushNamed(context, '/virscreen');
-                  },
+                  onPressed: _isLoading ? null : _sendResetEmail,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -111,17 +149,20 @@ class _ForgetpassState extends State<Forgetpass> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: Text(
-                    'Send',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                      : const Text(
+                          'Send',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
-              // Back to Login Link
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
@@ -133,10 +174,8 @@ class _ForgetpassState extends State<Forgetpass> {
                 ),
               ),
               const Spacer(flex: 1),
-              // Sign Up Prompt
               TextButton(
-                onPressed: () {
-                  },
+                onPressed: () {},
                 child: RichText(
                   text: TextSpan(
                     text: 'Don\'t have an account? ',

@@ -9,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Settings',
+          'Edit Profile',
           style: TextStyle(
             color: AppColor.primaryLight,
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_application_1/app_color.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BusTrackingScreen extends StatelessWidget {
   final List<Map<String, dynamic>> busStops = [
@@ -28,12 +29,12 @@ class BusTrackingScreen extends StatelessWidget {
       ),
 
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: <Widget>[
             const DrawerHeader(
               decoration: BoxDecoration(
-                color: Color.fromARGB(255, 159, 181, 13),
+                color: Color.fromARGB(255, 170, 173, 151),
+                
               ),
               child: Text(
                 'Omar Abdullatif',
@@ -43,48 +44,68 @@ class BusTrackingScreen extends StatelessWidget {
                 ),
               ),
             ),
-            ListTile(
-              title: const Text('Lost'),
-              onTap: () {
-                Navigator.pushNamed(context, '/loses');
-              },
+            Expanded(
+              child: ListView(
+                children: [
+                  ListTile(
+                    title: const Text('Lost'),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/loses');
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Found'),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/founditem');
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Settings'),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/setting');
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Help'),
+                    onTap: () {},
+                  ),
+                  const Divider(),
+                  ListTile(
+                    title: const Text('About us'),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    title: const Text('Privacy policy'),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    title: const Text('Terms and conditions'),
+                    onTap: () {},
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              title: const Text('Found'),
-              onTap: () {
-                Navigator.pushNamed(context, '/founditem');
-              },
-            ),
-            ListTile(
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pushNamed(context, '/setting');
-              },
-            ),
-            ListTile(
-              title: const Text('Help'),
-              onTap: () {
-               
-              },
-            ),
-            const Divider(),
-            ListTile(
-              title: const Text('About us'),
-              onTap: () {
-                //Navigator.pushNamed(context, '/seatselect');
-              },
-            ),
-            ListTile(
-              title: const Text('Privacy policy'),
-              onTap: () {
-                // Handle the tap
-              },
-            ),
-            ListTile(
-              title: const Text('Terms and conditions'),
-              onTap: () {
-                // Handle the tap
-              },
+            Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.clear(); // Clear session or token data
+                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                },
+                icon: const Icon(
+                  Icons.logout,
+                  size: 10,
+
+                  ),
+                label: const Text("Logout"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 167, 67, 17),
+                  foregroundColor: Colors.white,
+                
+                  
+                ),
+              ),
             ),
           ],
         ),
@@ -99,8 +120,7 @@ class BusTrackingScreen extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 subdomains: ['a', 'b', 'c'],
               ),
               MarkerLayer(
@@ -143,21 +163,10 @@ class BusTrackingScreen extends StatelessWidget {
             right: 40,
             child: Column(
               children: [
-                // ElevatedButton(
-                //   style: ElevatedButton.styleFrom(
-                //     backgroundColor: AppColor.primary,
-                //     minimumSize: const Size(double.infinity, 50),
-                //   ),
-                //   onPressed: () {},
-                //   child: const Text(
-                //     "Displayed All Buses",
-                //     style: TextStyle(color: Colors.white),
-                //   ),
-                // ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:AppColor.primary,
+                    backgroundColor: AppColor.primary,
                     minimumSize: const Size(double.infinity, 50),
                   ),
                   onPressed: () {

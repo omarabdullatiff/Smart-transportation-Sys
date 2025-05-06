@@ -149,6 +149,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     ),
                   ),
                   onPressed: () {
+                    Navigator.pushNamed(context , "/changepass");
                     // TODO: Verify code logic
                     print("Entered Pin: $currentText"); // Print the entered PIN
                   },

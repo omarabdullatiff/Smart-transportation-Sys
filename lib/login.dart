@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/app_color.dart';
+import 'package:flutter_application_1/component/buildTextField.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_application_1/component/snack.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -9,8 +15,102 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  bool _isEmailLogin = true; // Toggle between email and phone login
   final TextEditingController _inputController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  final _headers = const {
+    'accept': 'text/plain',
+    'Content-Type': 'application/json',
+  };
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // Function to handle normal email/password login
+  Future<void> _loginUser() async {
+    final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
+    final email = _inputController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      SnackBarHelper.show(context, "All fields are required");
+      return;
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      SnackBarHelper.show(context, "Enter a valid email address");
+      return;
+    }
+
+    final body = jsonEncode({"email": email, "password": password});
+
+    try {
+      final response = await http.post(url, headers: _headers, body: body);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final String token = data['token']; // Assuming the API returns a token in the response
+
+        // Store token and login status in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('auth_token', token);
+
+        SnackBarHelper.show(context, "Login successful");
+        Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
+      } else {
+        SnackBarHelper.show(context, "Login Failed: Wrong Email OR Password");
+      }
+    } catch (error) {
+      SnackBarHelper.show(context, "Error during login: $error");
+    }
+  }
+
+  // Function to handle Google login
+  Future<void> _handleGoogleLogin() async {
+    final googleSignIn = GoogleSignIn();
+    try {
+      final account = await googleSignIn.signIn();
+      if (account == null) {
+        SnackBarHelper.show(context, "Google sign-in canceled");
+        return;
+      }
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        SnackBarHelper.show(context, "Failed to get Google ID token");
+        return;
+      }
+
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/google-login');
+      final response = await http.post(
+        url,
+        headers: _headers,
+        body: jsonEncode({'idToken': idToken}), // Send the ID token
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final String token = data['token']; // Assuming 'token' is in the response
+
+        // Store token and login status in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('auth_token', token);
+
+        SnackBarHelper.show(context, "Google login successful");
+        Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
+      } else {
+        SnackBarHelper.show(context, "Google login failed");
+      }
+    } catch (error) {
+      SnackBarHelper.show(context, "Google sign-in error: $error");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +123,8 @@ class _LoginState extends State<Login> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Spacer(flex: 2),
-              // Header Text
-              Text(
+              const Spacer(flex: 2),
+              const Text(
                 'Login',
                 style: TextStyle(
                   fontSize: 45,
@@ -33,259 +132,72 @@ class _LoginState extends State<Login> {
                   color: Color.fromARGB(255, 155, 179, 1),
                 ),
               ),
-              Text(
+              const Text(
                 'Welcome back you’ve been missed!',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
-              Spacer(flex: 1),
-              // Toggle between Email and Phone Login
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(width: 10),
-                  // Email Toggle Button
-                  ChoiceChip(
-                    label: Text('Email'),
-                    selected: _isEmailLogin,
-                    onSelected: (selected) {
-                      setState(() {
-                        _isEmailLogin = true;
-                      });
-                    },
-                  ),
-                  SizedBox(width: 10),
-                  // Phone Toggle Button
-                  ChoiceChip(
-                    label: Text('Phone'),
-                    selected: !_isEmailLogin,
-                    onSelected: (selected) {
-                      setState(() {
-                        _isEmailLogin = false;
-                      });
-                    },
-                  ),
-                ],
+              const Spacer(flex: 1),
+              CustomTextField(
+                controller: _inputController,
+                label: 'Email',
+                hint: 'example@gmail.com',
               ),
-              SizedBox(height: 20),
-              // Dynamic Input Field
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.7),
-                      blurRadius: 6,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _inputController,
-                  decoration: InputDecoration(
-                    labelText: _isEmailLogin ? 'Email' : 'Phone Number',
-                    hintText: _isEmailLogin
-                        ? 'example@gmail.com'
-                        : 'Enter your phone number',
-                    labelStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Color(0xFF91A800), width: 2),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    contentPadding:
-                        EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  ),
-                  keyboardType: _isEmailLogin
-                      ? TextInputType.emailAddress
-                      : TextInputType.phone,
-                ),
+              const SizedBox(height: 15),
+              CustomTextField(
+                controller: _passwordController,
+                label: 'Password',
+                hint: 'Enter your password',
+                isPassword: true,
               ),
-              SizedBox(height: 15),
-              // Password Input Field
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.7),
-                      blurRadius: 6,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: 'Enter your password',
-                    labelStyle: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Color(0xFF91A800), width: 2),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    contentPadding:
-                        EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  ),
-                  style: TextStyle(fontSize: 16, color: Colors.black),
-                ),
-              ),
-              SizedBox(height: 35),
-              // Forgot Password Text
+              const SizedBox(height: 35),
               TextButton(
-                  onPressed: () {  
-                    Navigator.pushNamed(context ,"/forgetpass");
-                  },
-                  child: Text(
-                    'Forgot your password?',
-                    style: TextStyle(
-                      color: AppColor.primary,
-                      fontSize: 16,
-                    ),
-                  )),
-
-              Spacer(flex: 1),
-              // Sign In Button
+                onPressed: () => Navigator.pushNamed(context, "/forgetpass"),
+                child: Text('Forgot your password?',
+                    style: TextStyle(color: AppColor.primary, fontSize: 16)),
+              ),
+              const Spacer(flex: 1),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/newmap');
-                    // Add login logic here
-                    final input = _inputController.text;
-                    if (_isEmailLogin) {
-                      // Handle email login
-                      print('Logging in with email: $input');
-                    } else {
-                      // Handle phone login
-                      print('Logging in with phone: $input');
-                    }
-                  },
+                  onPressed: _loginUser,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF91A800),
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    backgroundColor: const Color(0xFF91A800),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: Text(
-                    'Sign in',
-                    style: TextStyle(fontSize: 20, color: Colors.white),
-                  ),
+                  child: const Text('Sign in',
+                      style: TextStyle(fontSize: 20, color: Colors.white)),
                 ),
               ),
-              SizedBox(height: 20),
-              // OR Divider
+              const SizedBox(height: 20),
               Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey,
-                      thickness: 1,
-                    ),
-                  ),
+                children: const [
+                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                      'OR',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('OR', style: TextStyle(fontSize: 16, color: Colors.grey)),
                   ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey,
-                      thickness: 1,
-                    ),
-                  ),
+                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                 ],
               ),
-              SizedBox(height: 20),
-              // Login with Google and Phone Number IconButtons
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Google IconButton
                   IconButton(
-                    onPressed: () {
-                      // Add Google login logic here
-                    },
-                    icon: Image.asset(
-                      'lib/image/g_logo.png', // Path to Google icon
-                      width: 40,
-                      height: 40,
-                    ),
-                  ),
-                  SizedBox(width: 20),
-                  // Phone IconButton
-                  IconButton(
-                    onPressed: () {
-                      // Add Phone login logic here
-                    },
-                    icon: Image.asset(
-                      'lib/image/g_logo.png', // Path to Phone icon
-                      width: 40,
-                      height: 40,
-                    ),
+                    onPressed: _handleGoogleLogin,
+                    icon: Image.asset('lib/image/g_logo.png', width: 40, height: 40),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-              // Create New Account TextButton
+              const SizedBox(height: 20),
               TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/signup');
-                },
-                child: Text(
-                  'Create new account',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
+                onPressed: () => Navigator.pushNamed(context, '/signup'),
+                child: const Text('Create new account',
+                    style: TextStyle(fontSize: 16, color: Colors.grey)),
               ),
-              Spacer(flex: 1),
+              const Spacer(flex: 1),
             ],
           ),
         ),
