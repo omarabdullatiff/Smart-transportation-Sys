@@ -35,14 +35,14 @@ class Mapscreen extends StatelessWidget {
             ListTile(
               title: Text('Lost'),
               onTap: () {
-                Navigator.pushNamed(context,'/loses');
+                Navigator.pushNamed(context,'/founditem');
 
               },
             ),
             ListTile(
               title: Text('Found'),
               onTap: () {
-                Navigator.pushNamed(context,'/verify');
+                Navigator.pushNamed(context,'/founditem');
 
               },
             ),

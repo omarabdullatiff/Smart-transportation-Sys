@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/BusList.dart';
 import 'package:flutter_application_1/Forget_pass.dart';
 import 'package:flutter_application_1/app_color.dart';
+import 'package:flutter_application_1/found_items.dart';
 import 'package:flutter_application_1/home_screen.dart';
+import 'package:flutter_application_1/image/tracking_screen.dart';
 import 'package:flutter_application_1/login.dart';
 import 'package:flutter_application_1/loses.dart';
+import 'package:flutter_application_1/map.dart';
 import 'package:flutter_application_1/mapscreen.dart';
 import 'package:flutter_application_1/profilescreen.dart';
 import 'package:flutter_application_1/seat_select_screan.dart';
@@ -39,13 +42,16 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const Signup(),
         '/forgetpass':(context) => const Forgetpass(),
         '/booking':(context) => const SelectAddressPage(),
-        '/map':(context) => const Mapscreen(),
+        //'/map':(context) => const Mapscreen(),
         '/loses':(context) =>  ReportItemPage(),
         '/buslist':(context) =>  BusListView(),
         '/setting':(context) =>  SettingsScreen(),
         '/seatselect':(context) =>  SeatSelectionScreen(),
         '/profile':(context) =>  EditProfileScreen(),
         '/virscreen':(context) =>  const VerificationScreen(),
+        '/founditem':(context)=> FoundItemsScreen(),
+        '/newmap':(context)=>BusTrackingScreen(),
+        '/track':(context)=>TarcTrackingPage()
 
         
       },

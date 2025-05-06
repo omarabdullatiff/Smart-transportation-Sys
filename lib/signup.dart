@@ -310,7 +310,7 @@ class _SignupState extends State<Signup> {
               SizedBox(height: 20),
               TextButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/map');
+                  Navigator.pushNamed(context, '/newmap');
                 },
                 child: Text(
                   'Already have an account? log in ',
