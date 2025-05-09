@@ -35,27 +35,51 @@ class _ForgetpassState extends State<Forgetpass> {
           'Content-Type': 'application/json',
           'accept': '*/*',
         },
-        body: jsonEncode({'email': email}),
+        body: jsonEncode({
+          'email': email,
+          'callbackUrl': 'smarttrackingapp://reset'
+        }),
       );
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Check your email for the code.')),
+          const SnackBar(
+            content: Text('Verification email sent! Please check your inbox and click the link to reset your password.'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.pushNamed(context, '/virscreen');
+        
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } else if (response.statusCode == 404) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email not found. Please check your email address.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send email: ${response.body}')),
+          SnackBar(
+            content: Text('Failed to send email: ${response.body}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Something went wrong. Please try again.')),
+        const SnackBar(
+          content: Text('Network error. Please check your internet connection.'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
