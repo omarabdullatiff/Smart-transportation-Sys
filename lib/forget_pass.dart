@@ -37,7 +37,7 @@ class _ForgetpassState extends State<Forgetpass> {
         },
         body: jsonEncode({
           'email': email,
-          'callbackUrl': 'smarttrackingapp://reset'
+          'callbackUrl': 'smarttrackingapp://reset?email=$email'
         }),
       );
 
