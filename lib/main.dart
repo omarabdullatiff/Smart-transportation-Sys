@@ -9,7 +9,6 @@ import 'package:flutter_application_1/image/tracking_screen.dart';
 import 'package:flutter_application_1/login.dart';
 import 'package:flutter_application_1/loses.dart';
 import 'package:flutter_application_1/map.dart';
-//import 'package:flutter_application_1/mapscreen.dart';
 import 'package:flutter_application_1/profilescreen.dart';
 import 'package:flutter_application_1/seat_select_screan.dart';
 import 'package:flutter_application_1/selectaddress.dart';
@@ -17,23 +16,62 @@ import 'package:flutter_application_1/setting_screen.dart';
 import 'package:flutter_application_1/signup.dart';
 import 'package:flutter_application_1/verification_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uni_links/uni_links.dart';
+import 'dart:async';
 
-void main() async {
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+  final token = prefs.getString('auth_token');
 
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+  runApp(MyApp(isLoggedIn: isLoggedIn && token != null));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool isLoggedIn;
 
   const MyApp({super.key, required this.isLoggedIn});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final StreamSubscription _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = uriLinkStream.listen((Uri? uri) {
+      if (uri != null &&
+          uri.path == '/reset' &&
+          uri.queryParameters.containsKey('email') &&
+          uri.queryParameters.containsKey('code')) {
+        final email = uri.queryParameters['email']!;
+        final code = uri.queryParameters['code']!;
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => NewPasswordScreen(email: email, code: code),
+          ),
+          (route) => false,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -42,7 +80,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      initialRoute: isLoggedIn ? '/newmap' : '/',
+      initialRoute: widget.isLoggedIn ? '/newmap' : '/',
       routes: {
         '/': (context) => const WelcomeScreen(),
         '/login': (context) => const Login(),
@@ -58,7 +96,8 @@ class MyApp extends StatelessWidget {
         '/founditem': (context) => FoundItemsScreen(),
         '/newmap': (context) => BusTrackingScreen(),
         '/track': (context) => TarcTrackingPage(),
-        '/changepass': (context) => NewPasswordScreen(),
+        // Keep this for non-deeplink navigation
+        '/changepass': (context) => const NewPasswordScreen(email: '', code: ''),
       },
     );
   }
