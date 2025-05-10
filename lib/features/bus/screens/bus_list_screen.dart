@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/BookingScreen.dart';
+import 'package:flutter_application_1/features/booking/screens/booking_screen.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
 
 class BusListView extends StatefulWidget {
   const BusListView({super.key});

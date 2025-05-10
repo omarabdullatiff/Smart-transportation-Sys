@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'app_color.dart';
-import 'package:flutter_application_1/component/buildTextField.dart';
-import 'package:flutter_application_1/component/snack.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/shared/widgets/build_text_field.dart';
+import 'package:flutter_application_1/shared/widgets/snack.dart';
 
 
 class Signup extends StatefulWidget {
@@ -32,15 +32,15 @@ class _SignupState extends State<Signup> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      SnackBarHelper.show(context,"All fields are required");
+      SnackBarHelper.showError(context, "All fields are required");
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      SnackBarHelper.show(context,"Enter a valid email address");
+      SnackBarHelper.showError(context, "Enter a valid email address");
       return;
     }
     if (password != confirmPassword) {
-      SnackBarHelper.show(context,"Passwords do not match");
+      SnackBarHelper.showError(context, "Passwords do not match");
       return;
     }
     // Send registration request
@@ -55,7 +55,7 @@ class _SignupState extends State<Signup> {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      SnackBarHelper.show(context,"Registration successful", backgroundColor: Colors.green);
+      SnackBarHelper.showSuccess(context, "Registration successful");
       Navigator.pushNamed(context, '/newmap');
     } else {
       try {
@@ -64,16 +64,16 @@ class _SignupState extends State<Signup> {
         final emailErrors = error['errors']?['Email'];
 
         if (passwordErrors != null && passwordErrors is List && passwordErrors.isNotEmpty) {
-          SnackBarHelper.show(context,passwordErrors.first);
+          SnackBarHelper.showError(context, passwordErrors.first);
         } else if (emailErrors != null && emailErrors is List && emailErrors.isNotEmpty) {
-          SnackBarHelper.show(context,emailErrors.first);
+          SnackBarHelper.showError(context, emailErrors.first);
         } else if (error['title'] != null) {
-          SnackBarHelper.show(context,error['title']);
+          SnackBarHelper.showError(context, error['title']);
         } else {
-          SnackBarHelper.show(context,"Registration failed. Please check your input.");
+          SnackBarHelper.showError(context, "Registration failed. Please check your input.");
         }
       } catch (e) {
-        SnackBarHelper.show(context,"Unexpected error. Please try again.");
+        SnackBarHelper.showError(context, "Unexpected error. Please try again.");
       }
     }
   }
@@ -105,26 +105,32 @@ class _SignupState extends State<Signup> {
                     fontSize: 16, color: AppColor.accent, letterSpacing: 2),
               ),
               const Spacer(flex: 1),
-              CustomTextField(
-                  controller: _nameController,
-                  label: 'User Name',
-                  hint: 'Enter Your Full Name'),
+              BuildTextField(
+                label: 'Full Name',
+                hint: 'Enter your full name',
+                controller: _nameController,
+              ),
               const SizedBox(height: 20),
-              CustomTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'example@gmail.com'),
+              BuildTextField(
+                label: 'Email',
+                hint: 'Enter your email',
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 20),
-              CustomTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  isPassword: true),
+              BuildTextField(
+                label: 'Password',
+                hint: 'Enter your password',
+                controller: _passwordController,
+                isPassword: true,
+              ),
               const SizedBox(height: 20),
-              CustomTextField(controller: _confirmPasswordController,
-                  label: 'Confirm password',
-                  hint: 'Confirm your password',
-                  isPassword: true),
+              BuildTextField(
+                label: 'Confirm Password',
+                hint: 'Confirm your password',
+                controller: _confirmPasswordController,
+                isPassword: true,
+              ),
               const SizedBox(height: 50),
               _buildTermsCheckbox(),
               const SizedBox(height: 20),
@@ -134,7 +140,7 @@ class _SignupState extends State<Signup> {
                   onPressed: _isChecked
                       ? _registerUser
                       : () =>
-                      SnackBarHelper.show(context,
+                      SnackBarHelper.showError(context,
                           'Please agree to the Terms & Conditions and Privacy Policy.'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF91A800),

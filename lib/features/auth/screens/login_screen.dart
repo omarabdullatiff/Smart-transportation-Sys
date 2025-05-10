@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/app_color.dart';
-import 'package:flutter_application_1/component/buildTextField.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/shared/widgets/build_text_field.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_application_1/component/snack.dart';
+import 'package:flutter_application_1/shared/widgets/snack.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
@@ -37,11 +37,11 @@ class _LoginState extends State<Login> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      SnackBarHelper.show(context, "All fields are required");
+      SnackBarHelper.showError(context, "All fields are required");
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      SnackBarHelper.show(context, "Enter a valid email address");
+      SnackBarHelper.showError(context, "Enter a valid email address");
       return;
     }
 
@@ -59,13 +59,13 @@ class _LoginState extends State<Login> {
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
 
-        SnackBarHelper.show(context, "Login successful");
+        SnackBarHelper.showSuccess(context, "Login successful");
         Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
       } else {
-        SnackBarHelper.show(context, "Login Failed: Wrong Email OR Password");
+        SnackBarHelper.showError(context, "Login Failed: Wrong Email OR Password");
       }
     } catch (error) {
-      SnackBarHelper.show(context, "Error during login: $error");
+      SnackBarHelper.showError(context, "Error during login: $error");
     }
   }
 
@@ -75,14 +75,14 @@ class _LoginState extends State<Login> {
     try {
       final account = await googleSignIn.signIn();
       if (account == null) {
-        SnackBarHelper.show(context, "Google sign-in canceled");
+        SnackBarHelper.showError(context, "Google sign-in canceled");
         return;
       }
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
-        SnackBarHelper.show(context, "Failed to get Google ID token");
+        SnackBarHelper.showError(context, "Failed to get Google ID token");
         return;
       }
 
@@ -102,13 +102,13 @@ class _LoginState extends State<Login> {
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
 
-        SnackBarHelper.show(context, "Google login successful");
+        SnackBarHelper.showSuccess(context, "Google login successful");
         Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
       } else {
-        SnackBarHelper.show(context, "Google login failed");
+        SnackBarHelper.showError(context, "Google login failed");
       }
     } catch (error) {
-      SnackBarHelper.show(context, "Google sign-in error: $error");
+      SnackBarHelper.showError(context, "Google sign-in error: $error");
     }
   }
 
@@ -133,18 +133,19 @@ class _LoginState extends State<Login> {
                 ),
               ),
               const Text(
-                'Welcome back you’ve been missed!',
+                "Welcome back you've been missed!",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 1),
-              CustomTextField(
+              BuildTextField(
                 controller: _inputController,
                 label: 'Email',
                 hint: 'example@gmail.com',
+                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 15),
-              CustomTextField(
+              BuildTextField(
                 controller: _passwordController,
                 label: 'Password',
                 hint: 'Enter your password',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/BusList.dart';
-import 'package:flutter_application_1/app_color.dart';
-import 'package:flutter_application_1/component.dart';
+import 'package:flutter_application_1/features/bus/screens/bus_list_screen.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/shared/widgets/common_widgets.dart';
 
 class SelectAddressPage extends StatelessWidget {
   const SelectAddressPage({super.key});

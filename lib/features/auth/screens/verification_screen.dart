@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pin_code_fields/pin_code_fields.dart'; 
-import 'package:flutter_application_1/app_color.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
 
 
 class VerificationScreen extends StatefulWidget {

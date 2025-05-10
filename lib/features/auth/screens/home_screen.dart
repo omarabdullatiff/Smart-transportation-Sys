@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'app_color.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});

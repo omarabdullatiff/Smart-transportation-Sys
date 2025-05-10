@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_application_1/app_color.dart';
-import 'package:flutter_application_1/loading_screen.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/utils/loading_screen.dart';
 
 class Forgetpass extends StatefulWidget {
   const Forgetpass({super.key});

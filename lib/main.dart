@@ -1,21 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_application_1/BusList.dart';
-import 'package:flutter_application_1/Forget_pass.dart';
-import 'package:flutter_application_1/app_color.dart';
-import 'package:flutter_application_1/change_pass.dart';
-import 'package:flutter_application_1/found_items.dart';
-import 'package:flutter_application_1/home_screen.dart';
-import 'package:flutter_application_1/image/tracking_screen.dart';
-import 'package:flutter_application_1/login.dart';
-import 'package:flutter_application_1/loses.dart';
-import 'package:flutter_application_1/map.dart';
-import 'package:flutter_application_1/profilescreen.dart';
-import 'package:flutter_application_1/seat_select_screan.dart';
-import 'package:flutter_application_1/selectaddress.dart';
-import 'package:flutter_application_1/setting_screen.dart';
-import 'package:flutter_application_1/signup.dart';
-import 'package:flutter_application_1/verification_screen.dart';
+import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/features/auth/screens/change_password_screen.dart';
+import 'package:flutter_application_1/core/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
@@ -83,25 +70,8 @@ class _MyAppState extends State<MyApp> {
         ),
         useMaterial3: true,
       ),
-      initialRoute: widget.isLoggedIn ? '/newmap' : '/',
-      routes: {
-        '/': (context) => const WelcomeScreen(),
-        '/login': (context) => const Login(),
-        '/signup': (context) => const Signup(),
-        '/forgetpass': (context) => const Forgetpass(),
-        '/booking': (context) => const SelectAddressPage(),
-        '/loses': (context) => ReportItemPage(),
-        '/buslist': (context) => BusListView(),
-        '/setting': (context) => SettingsScreen(),
-        '/seatselect': (context) => SeatSelectionScreen(),
-        '/profile': (context) => EditProfileScreen(),
-        '/virscreen': (context) => const VerificationScreen(),
-        '/founditem': (context) => FoundItemsScreen(),
-        '/newmap': (context) => BusTrackingScreen(),
-        '/track': (context) => TarcTrackingPage(),
-        // Keep this for non-deeplink navigation
-        '/changepass': (context) => const NewPasswordScreen(email: '', code: ''),
-      },
+      initialRoute: widget.isLoggedIn ? AppRoutes.newMap : AppRoutes.welcome,
+      routes: AppRoutes.getRoutes(),
     );
   }
 }
