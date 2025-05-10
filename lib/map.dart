@@ -49,8 +49,10 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       );
 
       if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        print('API Response: $responseData'); // Debug log
         setState(() {
-          userData = json.decode(response.body);
+          userData = responseData;
           isLoading = false;
         });
       } else {
@@ -114,7 +116,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Column(
                         children: [
                           Text(
-                            userData?['name'] ?? 'User',
+                            userData?['fullName'] ?? 'User',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_application_1/BusList.dart';
 import 'package:flutter_application_1/Forget_pass.dart';
 import 'package:flutter_application_1/app_color.dart';
@@ -40,31 +41,33 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late final StreamSubscription _sub;
+  late final StreamSubscription? _sub;
 
   @override
   void initState() {
     super.initState();
-    _sub = uriLinkStream.listen((Uri? uri) {
-      if (uri != null &&
-          uri.path == '/reset' &&
-          uri.queryParameters.containsKey('email') &&
-          uri.queryParameters.containsKey('code')) {
-        final email = uri.queryParameters['email']!;
-        final code = uri.queryParameters['code']!;
-        navigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => NewPasswordScreen(email: email, code: code),
-          ),
-          (route) => false,
-        );
-      }
-    });
+    if (!kIsWeb) {  // Only initialize deep linking on mobile platforms
+      _sub = uriLinkStream.listen((Uri? uri) {
+        if (uri != null &&
+            uri.path == '/reset' &&
+            uri.queryParameters.containsKey('email') &&
+            uri.queryParameters.containsKey('code')) {
+          final email = uri.queryParameters['email']!;
+          final code = uri.queryParameters['code']!;
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => NewPasswordScreen(email: email, code: code),
+            ),
+            (route) => false,
+          );
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _sub.cancel();
+    _sub?.cancel();
     super.dispose();
   }
 

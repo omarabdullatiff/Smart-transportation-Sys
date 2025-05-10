@@ -1,14 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
+import 'package:flutter_application_1/models/lost_items.dart';
+import 'package:flutter_application_1/services/lost_items_service.dart';
 import 'app_color.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 
-
 class ReportItemPage extends StatefulWidget {
   const ReportItemPage({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _ReportItemPageState createState() => _ReportItemPageState();
 }
 
@@ -18,8 +20,8 @@ class _ReportItemPageState extends State<ReportItemPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  File? _selectedImage; // Store selected image
-  DateTime? _selectedDateTime; // Store selected date & time
+  File? _selectedImage;
+  DateTime? _selectedDateTime;
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -40,18 +42,22 @@ class _ReportItemPageState extends State<ReportItemPage> {
       lastDate: DateTime(2101),
     );
 
-    if (pickedDate != null) {
-      TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
+    TimeOfDay? pickedTime = await showTimePicker(
+      // ignore: use_build_context_synchronously
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
 
-      if (pickedTime != null) {
-        setState(() {
-          _selectedDateTime = DateTime(pickedDate.year, pickedDate.month,
-              pickedDate.day, pickedTime.hour, pickedTime.minute);
-        });
-      }
+    if (pickedDate != null && pickedTime != null) {
+      setState(() {
+        _selectedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+      });
     }
   }
 
@@ -65,8 +71,7 @@ class _ReportItemPageState extends State<ReportItemPage> {
         ),
         title: Text(
           'Report an Item',
-          style:
-              TextStyle(color:AppColor.primary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColor.primary, fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColor.background,
         elevation: 0,
@@ -76,14 +81,13 @@ class _ReportItemPageState extends State<ReportItemPage> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
                       child: GestureDetector(
-                        onTap: _pickImage, // Tap anywhere to pick an image
+                        onTap: _pickImage,
                         child: Container(
                           height: 140,
                           width: double.infinity,
@@ -98,20 +102,17 @@ class _ReportItemPageState extends State<ReportItemPage> {
                                 : null,
                           ),
                           child: _selectedImage == null
-                              ? Icon(Icons.upload,
-                                  size: 50, color: Colors.black54)
+                              ? Icon(Icons.upload, size: 50, color: Colors.black54)
                               : null,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
-                    _buildTextField('Bus Number', _busNumberController,
-                        keyboardType: TextInputType.number),
+                    _buildTextField('Bus Number', _busNumberController, keyboardType: TextInputType.number),
                     _buildTextField('Description', _descriptionController),
                     _buildDateTimePicker(context),
                     _buildTextField('Name', _nameController),
-                    _buildTextField('Phone', _phoneController,
-                        keyboardType: TextInputType.phone),
+                    _buildTextField('Phone', _phoneController, keyboardType: TextInputType.phone),
                     SizedBox(height: 20),
                   ],
                 ),
@@ -129,13 +130,42 @@ class _ReportItemPageState extends State<ReportItemPage> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  onPressed: () {}, // Implement confirmation logic
+                  onPressed: () async {
+                    if (_selectedDateTime == null || _busNumberController.text.isEmpty || _descriptionController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please fill all required fields')),
+                      );
+                      return;
+                    }
+
+                    final lostItem = LostItem(
+                      busNumber: _busNumberController.text,
+                      description: _descriptionController.text,
+                      dateLost: _selectedDateTime!,
+                      reporterName: _nameController.text,
+                      reporterPhone: _phoneController.text,
+                      photoUrl: _selectedImage?.path ?? '', // Use local image path
+                    );
+
+                    final success = await LostItemsService.reportLostItem(lostItem);
+
+                    if (success) {
+                      // ignore: use_build_context_synchronously
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Item reported successfully!')),
+                      );
+                      // ignore: use_build_context_synchronously
+                      Navigator.pop(context);
+                    } else {
+                      // ignore: use_build_context_synchronously
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to report item')),
+                      );
+                    }
+                  },
                   child: Text(
                     'CONFIRM',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
               ),
@@ -188,15 +218,14 @@ class _ReportItemPageState extends State<ReportItemPage> {
           labelStyle: const TextStyle(color: AppColor.primaryDark, fontSize: 18),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
-            borderSide: const BorderSide(color:AppColor.primaryDark),
+            borderSide: const BorderSide(color: AppColor.primaryDark),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(15)),
             borderSide: BorderSide(color: AppColor.primaryDark, width: 2),
           ),
           contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-          suffixIcon: Icon(Icons.calendar_today,
-              color: AppColor.primaryDark), // Suffix icon added
+          suffixIcon: Icon(Icons.calendar_today, color: AppColor.primaryDark),
         ),
       ),
     );

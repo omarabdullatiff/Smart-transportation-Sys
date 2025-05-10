@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/app_color.dart';
+import 'package:flutter_application_1/loading_screen.dart';
 
 class Forgetpass extends StatefulWidget {
   const Forgetpass({super.key});
@@ -42,15 +43,13 @@ class _ForgetpassState extends State<Forgetpass> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification email sent! Please check your inbox and click the link to reset your password.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
         if (mounted) {
-          Navigator.pop(context);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoadingScreen(email: email),
+            ),
+          );
         }
       } else if (response.statusCode == 404) {
         ScaffoldMessenger.of(context).showSnackBar(
