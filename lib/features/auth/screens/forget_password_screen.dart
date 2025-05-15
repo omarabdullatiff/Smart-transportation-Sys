@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:flutter_application_1/core/utils/loading_screen.dart';
+import 'dart:io' show Platform;
 
 class Forgetpass extends StatefulWidget {
   const Forgetpass({super.key});
@@ -30,17 +31,31 @@ class _ForgetpassState extends State<Forgetpass> {
     });
 
     try {
+      // Prepare the request body
+      final requestBody = {
+        'email': email,
+        'callbackUrl': Platform.isIOS 
+            ? 'https://smarttrackingapp.runasp.net/reset?email=$email&code={code}'
+            : 'smarttrackingapp://?email=$email&code={code}'
+      };
+      
+      // For testing in emulator, show what the deep link would look like with a test code
+      final testDeepLink = 'smarttrackingapp://?email=$email&code=123456';
+      print('FOR TESTING: Deep link would be: $testDeepLink');
+      
+      print('Sending reset request with body: ${jsonEncode(requestBody)}');
+      
       final response = await http.post(
         Uri.parse('http://smarttrackingapp.runasp.net/api/Account/reset-password-request'),
         headers: {
           'Content-Type': 'application/json',
           'accept': '*/*',
         },
-        body: jsonEncode({
-          'email': email,
-          'callbackUrl': 'smarttrackingapp://reset?email=$email'
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      print('API Response Code: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         if (mounted) {
@@ -193,6 +208,23 @@ class _ForgetpassState extends State<Forgetpass> {
                   style: TextStyle(
                     color: AppColor.primary,
                     fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Debug button for development
+              Visibility(
+                visible: true, // Set to false before production
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/debug_reset');
+                  },
+                  child: Text(
+                    'Debug: Test Reset Screen',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),

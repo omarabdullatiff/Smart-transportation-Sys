@@ -31,6 +31,7 @@ class AppRoutes {
   static const String newMap = '/newmap';
   static const String track = '/track';
   static const String changePass = '/changepass';
+  static const String debugResetPassword = '/debug_reset';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -49,6 +50,7 @@ class AppRoutes {
       newMap: (context) => BusTrackingScreen(),
       track: (context) => TarcTrackingPage(),
       changePass: (context) => const NewPasswordScreen(email: '', code: ''),
+      debugResetPassword: (context) => const NewPasswordScreen(email: 'test@example.com', code: '123456'),
     };
   }
 } 

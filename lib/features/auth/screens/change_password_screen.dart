@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/core/utils/loading_screen.dart';
+import 'dart:io' show Platform;
 
 class NewPasswordScreen extends StatefulWidget {
   final String email;
@@ -61,16 +63,83 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         );
         Navigator.pushReplacementNamed(context, '/login');
       } else if (response.statusCode == 400) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid verification code or code has expired. Please request a new code.'),
-            backgroundColor: Colors.red,
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Code Expired'),
+            content: const Text('Your password reset code has expired. Would you like to request a new code?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _requestNewCode();
+                },
+                child: const Text('Request New Code'),
+              ),
+            ],
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${response.body}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Network error. Please check your internet connection.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _requestNewCode() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Account/reset-password-request'),
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': '*/*',
+        },
+        body: jsonEncode({
+          'email': widget.email,
+          'callbackUrl': Platform.isIOS 
+              ? 'https://smarttrackingapp.runasp.net/reset?email=${widget.email}&code={code}'
+              : 'smarttrackingapp://?email=${widget.email}&code={code}'
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('New reset code has been sent to your email.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoadingScreen(email: widget.email),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send new code: ${response.body}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -218,6 +287,17 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                                     fontSize: 18.0,
                                   ),
                                 ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: _isLoading ? null : _requestNewCode,
+                        child: Text(
+                          'Request New Code',
+                          style: TextStyle(
+                            color: AppColor.primary,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ],
