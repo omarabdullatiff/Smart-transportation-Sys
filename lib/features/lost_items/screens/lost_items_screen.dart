@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart'; 
-import 'package:flutter_application_1/models/lost_items.dart';
-import 'package:flutter_application_1/services/lost_items_service.dart';
+import 'package:flutter_application_1/features/lost_items/models/lost_items.dart';
+import 'package:flutter_application_1/features/lost_items/services/lost_items_service.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -131,9 +131,16 @@ class _ReportItemPageState extends State<ReportItemPage> {
                     ),
                   ),
                   onPressed: () async {
-                    if (_selectedDateTime == null || _busNumberController.text.isEmpty || _descriptionController.text.isEmpty) {
+                    if (_selectedDateTime == null || 
+                        _busNumberController.text.isEmpty || 
+                        _descriptionController.text.isEmpty ||
+                        _nameController.text.isEmpty ||
+                        _phoneController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Please fill all required fields')),
+                        const SnackBar(
+                          content: Text('Please fill all required fields'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                       return;
                     }
@@ -142,25 +149,35 @@ class _ReportItemPageState extends State<ReportItemPage> {
                       busNumber: _busNumberController.text,
                       description: _descriptionController.text,
                       dateLost: _selectedDateTime!,
-                      reporterName: _nameController.text,
-                      reporterPhone: _phoneController.text,
-                      photoUrl: _selectedImage?.path ?? '', // Use local image path
+                      contactName: _nameController.text,
+                      contactPhone: _phoneController.text,
+                      photoUrl: 'https://via.placeholder.com/150', // Will be updated by service
                     );
 
-                    final success = await LostItemsService.reportLostItem(lostItem);
+                    final success = await LostItemsService.reportLostItem(
+                      lostItem,
+                      imageFile: _selectedImage,
+                    );
 
                     if (success) {
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Item reported successfully!')),
-                      );
-                      // ignore: use_build_context_synchronously
-                      Navigator.pop(context);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Item reported successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      }
                     } else {
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to report item')),
-                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to report item. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
                   child: Text(

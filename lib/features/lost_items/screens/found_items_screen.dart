@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../services/lost_items_service.dart';
 import '../models/lost_items.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 class FoundItemsScreen extends StatefulWidget {
   const FoundItemsScreen({super.key});
@@ -93,19 +95,26 @@ class _FoundItemsScreenState extends State<FoundItemsScreen> {
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(12),
                                     ),
-                                    child: item.image != null && item.image!.startsWith('http')
+                                    child: item.photoUrl == null
                                       ? Image.network(
-                                          item.photoUrl,
+                                          'https://via.placeholder.com/150',
                                           width: double.infinity,
                                           height: 100,
                                           fit: BoxFit.cover,
                                         )
-                                      : Image.memory(
-                                          base64Decode(item.image!),
-                                          width: double.infinity,
-                                          height: 100,
-                                          fit: BoxFit.cover,
-                                        ),
+                                      : item.photoUrl!.startsWith('data:image')
+                                        ? Image.memory(
+                                            base64Decode(item.photoUrl!.split(',')[1]),
+                                            width: double.infinity,
+                                            height: 100,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.network(
+                                            item.photoUrl!,
+                                            width: double.infinity,
+                                            height: 100,
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                   Positioned(
                                     top: 8,
@@ -175,14 +184,108 @@ class _FoundItemsScreenState extends State<FoundItemsScreen> {
                                           ],
                                         ),
                                         ElevatedButton(
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: Text('Contact Information'),
+                                                  content: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text('Name: ${item.contactName}'),
+                                                      SizedBox(height: 8),
+                                                      Text('Phone: ${item.contactPhone}'),
+                                                      SizedBox(height: 16),
+                                                      if (Platform.isAndroid || Platform.isIOS)
+                                                        Text(
+                                                          'Note: In emulator, phone calls are simulated.',
+                                                          style: TextStyle(
+                                                            color: Colors.grey[600],
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(context),
+                                                      child: Text('Close'),
+                                                    ),
+                                                    ElevatedButton.icon(
+                                                      onPressed: () async {
+                                                        final Uri phoneUri = Uri(
+                                                          scheme: 'tel',
+                                                          path: item.contactPhone,
+                                                        );
+                                                        
+                                                        try {
+                                                          if (await canLaunchUrl(phoneUri)) {
+                                                            await launchUrl(phoneUri);
+                                                            if (context.mounted) {
+                                                              Navigator.pop(context);
+                                                            }
+                                                          } else {
+                                                            if (context.mounted) {
+                                                              showDialog(
+                                                                context: context,
+                                                                builder: (context) => AlertDialog(
+                                                                  title: Text('Phone Call Simulation'),
+                                                                  content: Text(
+                                                                    'In the emulator, this would open the phone app to call:\n\n${item.contactPhone}\n\nOn a real device, this would initiate a phone call.',
+                                                                  ),
+                                                                  actions: [
+                                                                    TextButton(
+                                                                      onPressed: () {
+                                                                        Navigator.pop(context); // Close simulation dialog
+                                                                        Navigator.pop(context); // Close contact dialog
+                                                                      },
+                                                                      child: Text('OK'),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              );
+                                                            }
+                                                          }
+                                                        } catch (e) {
+                                                          if (context.mounted) {
+                                                            showDialog(
+                                                              context: context,
+                                                              builder: (context) => AlertDialog(
+                                                                title: Text('Phone Call Simulation'),
+                                                                content: Text(
+                                                                  'In the emulator, this would open the phone app to call:\n\n${item.contactPhone}\n\nOn a real device, this would initiate a phone call.',
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () {
+                                                                      Navigator.pop(context); // Close simulation dialog
+                                                                      Navigator.pop(context); // Close contact dialog
+                                                                    },
+                                                                    child: Text('OK'),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
+                                                        }
+                                                      },
+                                                      icon: Icon(Icons.phone, color: Colors.white),
+                                                      label: Text('Call'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Colors.lightGreen.shade700,
+                                            backgroundColor: Colors.lightGreen.shade700,
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(
-                                                8,
-                                              ),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 4,
