@@ -1,126 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/features/booking/screens/booking_screen.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/features/bus/widgets/bus_card.dart';
+import 'package:flutter_application_1/features/bus/services/bus_service.dart';
 
-class BusListView extends StatefulWidget {
+class BusListView extends StatelessWidget {
   const BusListView({super.key});
 
-  @override
-  _BusListViewState createState() => _BusListViewState();
-}
-
-class _BusListViewState extends State<BusListView> {
-  int? selectedBusIndex;
-
-  final List<Map<String, String>> buses = [
-    {'number': '505', 'start': '5th Settlement', 'end': 'Heliopolis'},
-    {'number': '400', 'start': 'Nasr City', 'end': 'Downtown'},
-    {'number': '300', 'start': 'Maadi', 'end': 'Giza'},
-    {'number': '200', 'start': '6th October', 'end': 'Zamalek'},
-    {'number': '101', 'start': 'New Cairo', 'end': 'Alexandria'},
-    {'number': '202', 'start': 'Giza', 'end': 'Luxor'},
-    {'number': '303', 'start': 'Cairo', 'end': 'Aswan'},
-    {'number': '404', 'start': 'Sharm El Sheikh', 'end': 'Hurghada'},
-  ];
-
-  void _navigateToBookingScreen(BuildContext context, Map<String, String> bus) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingScreen(bus: bus),
-      ),
-    );
+  void _onBusTap(BuildContext context, Map<String, String> bus) {
+    // You can add navigation or other logic here if needed, but removed fetchBusAbstract and pop-up logic.
   }
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(20),
+    return Scaffold(
+      backgroundColor: AppColor.background,
+      appBar: AppBar(
+        backgroundColor: AppColor.background,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'All Buses',
+          style: const TextStyle(
+            color: AppColor.primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            letterSpacing: 0.5,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Add the text above the list of buses
-            Center(
-              child: Text(
-                'Bus in your area',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(
-                height: 10), // Add some spacing between the text and the list
-            Expanded(
-              child: ListView.builder(
-                itemCount: buses.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedBusIndex = index;
-                      });
-                      _navigateToBookingScreen(context, buses[index]);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selectedBusIndex == index
-                              ? Colors.blue[50]
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selectedBusIndex == index
-                                ? Colors.blue
-                                : Colors.grey[300]!,
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                            ),
-                          ],
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.directions_bus,
-                            color: selectedBusIndex == index
-                                ? Colors.blue
-                                : Colors.grey[700],
-                            size: 30,
-                          ),
-                          title: Text(
-                            buses[index]['number']!,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: selectedBusIndex == index
-                                  ? Colors.blue
-                                  : Colors.grey[700],
-                            ),
-                          ),
-                          subtitle: Text(
-                            '${buses[index]['start']} → ${buses[index]['end']}',
-                            style: TextStyle(
-                              color: selectedBusIndex == index
-                                  ? Colors.blue
-                                  : Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+        automaticallyImplyLeading: false,
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: BusService.fetchAllBuses(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Failed to load buses'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No buses found'));
+          }
+          final buses = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            itemCount: buses.length,
+            itemBuilder: (context, index) {
+              final bus = buses[index];
+              return BusCard(
+                number: bus['number']?.toString() ?? '',
+                start: bus['org']?.toString() ?? '',
+                end: bus['dest']?.toString() ?? '',
+                onTap: () => _onBusTap(context, {
+                  'number': bus['number']?.toString() ?? '',
+                  'start': bus['org']?.toString() ?? '',
+                  'end': bus['dest']?.toString() ?? '',
+                }),
+              );
+            },
+          );
+        },
       ),
     );
   }

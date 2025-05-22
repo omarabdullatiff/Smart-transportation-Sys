@@ -294,7 +294,30 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             right: 40,
             child: Column(
               children: [
-                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColor.primary,
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/buslist');
+                    },
+                    child: const Text(
+                      'Displayed All Busses',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColor.primary,
