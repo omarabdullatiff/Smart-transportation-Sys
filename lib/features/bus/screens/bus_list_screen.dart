@@ -3,12 +3,23 @@ import 'package:flutter_application_1/features/booking/screens/booking_screen.da
 import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:flutter_application_1/features/bus/widgets/bus_card.dart';
 import 'package:flutter_application_1/features/bus/services/bus_service.dart';
+import 'package:flutter_application_1/features/bus/screens/bus_trip_detailed.dart';
 
 class BusListView extends StatelessWidget {
   const BusListView({super.key});
 
-  void _onBusTap(BuildContext context, Map<String, String> bus) {
-    // You can add navigation or other logic here if needed, but removed fetchBusAbstract and pop-up logic.
+  void _onBusTap(BuildContext context, Map<String, dynamic> bus) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusTripDetailedScreen(
+          id: bus['number'] ?? '',
+          number: bus['number'] ?? '',
+          start: bus['start'] ?? '',
+          end: bus['end'] ?? '',
+        ),
+      ),
+    );
   }
 
   @override
@@ -50,11 +61,7 @@ class BusListView extends StatelessWidget {
                 number: bus['number']?.toString() ?? '',
                 start: bus['org']?.toString() ?? '',
                 end: bus['dest']?.toString() ?? '',
-                onTap: () => _onBusTap(context, {
-                  'number': bus['number']?.toString() ?? '',
-                  'start': bus['org']?.toString() ?? '',
-                  'end': bus['dest']?.toString() ?? '',
-                }),
+                onTap: () => _onBusTap(context, bus),
               );
             },
           );
