@@ -116,7 +116,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Column(
                         children: [
                           Text(
-                            userData?['fullName'] ?? 'User',
+                            userData?['displayName'] ?? 'pola',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
