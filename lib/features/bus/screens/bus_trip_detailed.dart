@@ -3,6 +3,9 @@ import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+// استيراد صفحة الجدول من ملفها الأصلي
+import 'package:flutter_application_1/features/bus/screens/bus_schedule_page.dart';
+
 class BusTripDetailedScreen extends StatefulWidget {
   final String id;
   final String number;
@@ -75,7 +78,6 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Card styled as screenshot
                 Container(
                   margin: const EdgeInsets.only(top: 8, bottom: 18),
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -91,7 +93,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                       Flexible(
                         child: Text(
                           busNumber,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 24,
                             color: Colors.black,
@@ -112,7 +114,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                                 Flexible(
                                   child: Text(
                                     origin,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       color: Colors.black,
                                       fontWeight: FontWeight.w500,
@@ -123,12 +125,11 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                                 ),
                               ],
                             ),
-                            // Dashed line
                             Container(
                               width: 2,
                               height: 18,
                               margin: const EdgeInsets.symmetric(vertical: 2),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 border: Border(
                                   left: BorderSide(
                                     color: Colors.black,
@@ -145,7 +146,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                                 Flexible(
                                   child: Text(
                                     destination,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       color: Colors.black,
                                       fontWeight: FontWeight.w500,
@@ -162,7 +163,6 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                     ],
                   ),
                 ),
-                // Stops List
                 Expanded(
                   child: ListView.builder(
                     itemCount: stops.length,
@@ -217,14 +217,16 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                     },
                   ),
                 ),
-                // Bottom Buttons
                 Padding(
                   padding: const EdgeInsets.only(bottom: 24, top: 12),
                   child: Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            // مؤقتاً طباعة رسالة في الكونسول
+                            print("Show bus on map clicked");
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.primary,
                             shape: RoundedRectangleBorder(
@@ -232,13 +234,25 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: Text("Show bus on map", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),),
+                          child: const Text(
+                            "Show bus on map",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 18),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => BusSchedulePage()),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.primary,
                             shape: RoundedRectangleBorder(
@@ -266,4 +280,4 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
       ),
     );
   }
-} 
+}
