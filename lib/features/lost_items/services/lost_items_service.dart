@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import '../models/lost_items.dart';
 
 class LostItemsService {
@@ -36,12 +37,12 @@ class LostItemsService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
-        print('Failed to report lost item. Status Code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        debugPrint('Failed to report lost item. Status Code: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error reporting lost item: $e');
+      debugPrint('Error reporting lost item: $e');
       return false;
     }
   }
@@ -59,11 +60,11 @@ class LostItemsService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => LostItem.fromJson(json)).toList();
       }
-      print('Failed to get lost items. Status Code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      debugPrint('Failed to get lost items. Status Code: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
       return [];
     } catch (e) {
-      print('Error fetching lost items: $e');
+      debugPrint('Error fetching lost items: $e');
       return [];
     }
   }

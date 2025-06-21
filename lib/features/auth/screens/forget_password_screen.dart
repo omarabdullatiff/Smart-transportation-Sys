@@ -41,9 +41,9 @@ class _ForgetpassState extends State<Forgetpass> {
       
       // For testing in emulator, show what the deep link would look like with a test code
       final testDeepLink = 'smarttrackingapp://?email=$email&code=123456';
-      print('FOR TESTING: Deep link would be: $testDeepLink');
+      debugPrint('FOR TESTING: Deep link would be: $testDeepLink');
       
-      print('Sending reset request with body: ${jsonEncode(requestBody)}');
+      debugPrint('Sending reset request with body: ${jsonEncode(requestBody)}');
       
       final response = await http.post(
         Uri.parse('http://smarttrackingapp.runasp.net/api/Account/reset-password-request'),
@@ -54,8 +54,8 @@ class _ForgetpassState extends State<Forgetpass> {
         body: jsonEncode(requestBody),
       );
 
-      print('API Response Code: ${response.statusCode}');
-      print('API Response Body: ${response.body}');
+      debugPrint('API Response Code: ${response.statusCode}');
+      debugPrint('API Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         if (mounted) {
@@ -67,27 +67,33 @@ class _ForgetpassState extends State<Forgetpass> {
           );
         }
       } else if (response.statusCode == 404) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email not found. Please check your email address.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send email: ${response.body}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Email not found. Please check your email address.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send email: ${response.body}'),
+            content: Text('Network error. Please check your internet connection.'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Network error. Please check your internet connection.'),
-          backgroundColor: Colors.red,
-        ),
-      );
     } finally {
       if (mounted) {
         setState(() {
@@ -134,7 +140,7 @@ class _ForgetpassState extends State<Forgetpass> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.7),
+                      color: Colors.grey.withValues(alpha: 0.7),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),

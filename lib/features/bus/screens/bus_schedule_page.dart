@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 class BusSchedulePage extends StatefulWidget {
+  const BusSchedulePage({super.key});
+
   @override
-  _BusSchedulePageState createState() => _BusSchedulePageState();
+  State<BusSchedulePage> createState() => _BusSchedulePageState();
 }
 
 class _BusSchedulePageState extends State<BusSchedulePage> {
@@ -34,12 +36,12 @@ class _BusSchedulePageState extends State<BusSchedulePage> {
         elevation: 0,
         foregroundColor: Colors.black,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: Text(
                 '575 Schedule',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -54,11 +56,11 @@ class _BusSchedulePageState extends State<BusSchedulePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: isGo ? Colors.black : Colors.white,
                 foregroundColor: isGo ? Colors.white : Colors.black,
-                side: BorderSide(color: Colors.black),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                textStyle: TextStyle(fontSize: 12),
+                side: const BorderSide(color: Colors.black),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                textStyle: const TextStyle(fontSize: 12),
               ),
-              child: Text('Go'),
+              child: const Text('Go'),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
@@ -70,13 +72,13 @@ class _BusSchedulePageState extends State<BusSchedulePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: !isGo ? Colors.black : Colors.white,
                 foregroundColor: !isGo ? Colors.white : Colors.black,
-                side: BorderSide(color: Colors.black),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                textStyle: TextStyle(fontSize: 12),
+                side: const BorderSide(color: Colors.black),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                textStyle: const TextStyle(fontSize: 12),
               ),
-              child: Text('Return'),
+              child: const Text('Return'),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
           ],
         ),
       ),
@@ -91,10 +93,10 @@ class _BusSchedulePageState extends State<BusSchedulePage> {
               boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 4)],
             ),
             child: ExpansionTile(
-              tilePadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               title: Text(
                 entry.key,
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Color(0xFFB2C248),
                   fontSize: 16,
@@ -108,14 +110,14 @@ class _BusSchedulePageState extends State<BusSchedulePage> {
                     runSpacing: 8,
                     children: entry.value.map((time) {
                       return Container(
-                        padding: EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           time,
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       );
                     }).toList(),

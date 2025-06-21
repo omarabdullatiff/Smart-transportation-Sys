@@ -66,10 +66,11 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushReplacementNamed(context, '/login');
-        return false;
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       },
       child: Scaffold(
         backgroundColor: AppColor.background,
@@ -89,7 +90,7 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                         width: 100,
                         height: 100,
                         decoration: BoxDecoration(
-                          color: AppColor.primary.withOpacity(0.1),
+                          color: AppColor.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -109,7 +110,7 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                   child: CircularProgressIndicator(
                     color: AppColor.primary,
                     strokeWidth: 3,
-                    backgroundColor: AppColor.primary.withOpacity(0.2),
+                    backgroundColor: AppColor.primary.withValues(alpha: 0.2),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -136,7 +137,7 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColor.primary.withOpacity(0.1),
+                              color: AppColor.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -167,7 +168,7 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -226,7 +227,8 @@ class _LoadingScreenState extends State<LoadingScreen> with SingleTickerProvider
                   onPressed: () {
                     final testCode = '123456'; // Simulated reset code
                     final testDeepLink = 'smarttrackingapp://?email=${widget.email}&code=$testCode';
-                    print('Simulating deep link: $testDeepLink');
+                    // Debug print for testing
+                    debugPrint('Simulating deep link: $testDeepLink');
                     
                     // Navigate directly to password reset screen for testing
                     Navigator.of(context).pushReplacement(

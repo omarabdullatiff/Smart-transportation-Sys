@@ -27,7 +27,9 @@ class _MapscreenState extends State<Mapscreen> {
       final token = prefs.getString('auth_token');
 
       if (token == null) {
-        Navigator.pushReplacementNamed(context, '/login');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
         return;
       }
 
@@ -41,26 +43,32 @@ class _MapscreenState extends State<Mapscreen> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('User Data Response: $responseData');
-        setState(() {
-          userData = responseData;
-          isLoading = false;
-        });
+        debugPrint('User Data Response: $responseData');
+        if (mounted) {
+          setState(() {
+            userData = responseData;
+            isLoading = false;
+          });
+        }
       } else {
-        print('Error Response: ${response.body}');
+        debugPrint('Error Response: ${response.body}');
         await prefs.clear();
-        Navigator.pushReplacementNamed(context, '/login');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load user data'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load user data'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -68,10 +76,10 @@ class _MapscreenState extends State<Mapscreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Map Screen'),
+        title: const Text('Map Screen'),
         leading: Builder(
           builder: (context) => IconButton(
-            icon: Icon(Icons.menu),
+            icon: const Icon(Icons.menu),
             onPressed: () {
               Scaffold.of(context).openDrawer();
             },
@@ -119,44 +127,44 @@ class _MapscreenState extends State<Mapscreen> {
               ),
             ),
             ListTile(
-              title: Text('Lost'),
+              title: const Text('Lost'),
               onTap: () {
                 Navigator.pushNamed(context,'/loses');
               },
             ),
             ListTile(
-              title: Text('Found'),
+              title: const Text('Found'),
               onTap: () {
                 Navigator.pushNamed(context,'/founditem');
               },
             ),
             ListTile(
-              title: Text('Settings'),
+              title: const Text('Settings'),
               onTap: () {
                 Navigator.pushNamed(context, '/setting');
               },
             ),
             ListTile(
-              title: Text('Help'),
+              title: const Text('Help'),
               onTap: () {
                 Navigator.pushNamed(context, '/profile');
               },
             ),
-            Divider(),
+            const Divider(),
             ListTile(
-              title: Text('About us'),
+              title: const Text('About us'),
               onTap: () {
                 Navigator.pushNamed(context, '/seatselect');
               },
             ),
             ListTile(
-              title: Text('Privacy policy'),
+              title: const Text('Privacy policy'),
               onTap: () {
                 // Handle the tap
               },
             ),
             ListTile(
-              title: Text('Terms and conditions'),
+              title: const Text('Terms and conditions'),
               onTap: () {
                 // Handle the tap
               },
@@ -164,7 +172,7 @@ class _MapscreenState extends State<Mapscreen> {
           ],
         ),
       ),
-      body: Center(
+      body: const Center(
         child: Text('Map Screen Content'),
       ),
     );

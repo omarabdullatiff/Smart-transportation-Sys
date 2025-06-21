@@ -8,12 +8,12 @@ class BusCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const BusCard({
-    Key? key,
+    super.key,
     required this.number,
     required this.start,
     required this.end,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,7 @@ class BusCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.directions_bus, color: Colors.black87, size: 40),
+            const Icon(Icons.directions_bus, color: Colors.black87, size: 40),
             const SizedBox(width: 12),
             Text(
               number,
@@ -72,8 +72,8 @@ class BusCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
                     child: SizedBox(
                       height: 18,
                       child: VerticalDivider(

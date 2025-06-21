@@ -24,9 +24,9 @@ Future<void> main() async {
     try {
       final appLinks = AppLinks();
       initialDeepLink = await appLinks.getInitialAppLink();
-      print('Initial deep link captured in main(): $initialDeepLink');
+      debugPrint('Initial deep link captured in main(): $initialDeepLink');
     } catch (e) {
-      print('Error getting initial deep link in main(): $e');
+      debugPrint('Error getting initial deep link in main(): $e');
     }
   }
 
@@ -61,38 +61,38 @@ class _MyAppState extends State<MyApp> {
     try {
       // Check the global variable first (in case link opened the app)
       if (initialDeepLink != null) {
-        print('Handling initial deep link from global variable: $initialDeepLink');
+        debugPrint('Handling initial deep link from global variable: $initialDeepLink');
         _handleDeepLink(initialDeepLink!);
       }
     } catch (e) {
-      print('Error handling initial deep link from global: $e');
+      debugPrint('Error handling initial deep link from global: $e');
     }
 
     // Listen for incoming links while app is running
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      print('Received URI from stream: $uri');
+      debugPrint('Received URI from stream: $uri');
       _handleDeepLink(uri);
     }, onError: (err) {
-      print('Error handling deep link: $err');
+      debugPrint('Error handling deep link: $err');
     });
   }
 
   void _handleDeepLink(Uri uri) {
-    print('============ DEEP LINK RECEIVED ============');
-    print('Received deep link: $uri');
-    print('URI scheme: ${uri.scheme}');
-    print('URI host: ${uri.host}');
-    print('URI path: ${uri.path}');
-    print('URI query parameters: ${uri.queryParameters}');
-    print('Platform: ${Platform.operatingSystem}');
-    print('============================================');
+    debugPrint('============ DEEP LINK RECEIVED ============');
+    debugPrint('Received deep link: $uri');
+    debugPrint('URI scheme: ${uri.scheme}');
+    debugPrint('URI host: ${uri.host}');
+    debugPrint('URI path: ${uri.path}');
+    debugPrint('URI query parameters: ${uri.queryParameters}');
+    debugPrint('Platform: ${Platform.operatingSystem}');
+    debugPrint('============================================');
 
     // Accept any path as long as email and code parameters are present
     if (uri.queryParameters.containsKey('email') && 
         uri.queryParameters.containsKey('code')) {
       final email = uri.queryParameters['email']!;
       final code = uri.queryParameters['code']!;
-      print('Navigating to change password screen with email: $email and code: $code');
+      debugPrint('Navigating to change password screen with email: $email and code: $code');
 
       // Use a small delay to ensure the app is fully initialized
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -103,20 +103,20 @@ class _MyAppState extends State<MyApp> {
             ),
             (route) => false,
           );
-          print('Successfully navigated to NewPasswordScreen');
+          debugPrint('Successfully navigated to NewPasswordScreen');
         } catch (e) {
-          print('Error navigating to NewPasswordScreen: $e');
+          debugPrint('Error navigating to NewPasswordScreen: $e');
           // As a fallback, try using a named route
           try {
             navigatorKey.currentState?.pushReplacementNamed('/changepass');
-            print('Fallback: Navigated to /changepass route');
+            debugPrint('Fallback: Navigated to /changepass route');
           } catch (e) {
-            print('Error with fallback navigation: $e');
+            debugPrint('Error with fallback navigation: $e');
           }
         }
       });
     } else {
-      print('Email or code parameter missing in URI: $uri');
+      debugPrint('Email or code parameter missing in URI: $uri');
     }
   }
 

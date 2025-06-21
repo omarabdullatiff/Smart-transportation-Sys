@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
-import 'package:flutter_application_1/shared/widgets/build_text_field.dart';
+import 'package:flutter_application_1/core/routes/app_routes.dart';
+import 'package:flutter_application_1/shared/widgets/custom_button.dart';
+import 'package:flutter_application_1/shared/widgets/custom_snackbar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_application_1/shared/widgets/snack.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
@@ -17,6 +18,8 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
   final _headers = const {
     'accept': 'text/plain',
@@ -30,24 +33,67 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
+  }
+
   // Function to handle normal email/password login
   Future<void> _loginUser() async {
-    final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
     final email = _inputController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      SnackBarHelper.showError(context, "All fields are required");
+      CustomSnackBar.showError(
+        context: context,
+        message: "All fields are required",
+      );
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      SnackBarHelper.showError(context, "Enter a valid email address");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Enter a valid email address",
+      );
       return;
     }
 
-    final body = jsonEncode({"email": email, "password": password});
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
+      // Check if admin login
+      if (email == 'omar@admin.com') {
+        // For admin, just check if password is not empty (you can add more validation)
+        if (password.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setString('auth_token', 'admin_token_placeholder');
+          await prefs.setString('user_type', 'admin');
+          
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Admin login successful",
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.adminDashboard, (route) => false);
+          }
+          return;
+        } else {
+          CustomSnackBar.showError(
+            context: context,
+            message: "Password is required",
+          );
+          return;
+        }
+      }
+
+      // Regular user login with API
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
+      final body = jsonEncode({"email": email, "password": password});
+
       final response = await http.post(url, headers: _headers, body: body);
 
       if (response.statusCode == 200) {
@@ -58,31 +104,60 @@ class _LoginState extends State<Login> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
+        await prefs.setString('user_type', 'user');
 
-        SnackBarHelper.showSuccess(context, "Login successful");
-        Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
+        CustomSnackBar.showSuccess(
+          context: context,
+          message: "Login successful",
+        );
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.newMap, (route) => false);
+        }
       } else {
-        SnackBarHelper.showError(context, "Login Failed: Wrong Email OR Password");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Login Failed: Wrong Email OR Password",
+        );
       }
     } catch (error) {
-      SnackBarHelper.showError(context, "Error during login: $error");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Error during login: $error",
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   // Function to handle Google login
   Future<void> _handleGoogleLogin() async {
     final googleSignIn = GoogleSignIn();
+    
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final account = await googleSignIn.signIn();
       if (account == null) {
-        SnackBarHelper.showError(context, "Google sign-in canceled");
+        CustomSnackBar.showWarning(
+          context: context,
+          message: "Google sign-in canceled",
+        );
         return;
       }
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
-        SnackBarHelper.showError(context, "Failed to get Google ID token");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Failed to get Google ID token",
+        );
         return;
       }
 
@@ -101,15 +176,106 @@ class _LoginState extends State<Login> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
+        await prefs.setString('user_type', 'user');
 
-        SnackBarHelper.showSuccess(context, "Google login successful");
-        Navigator.pushNamedAndRemoveUntil(context, '/newmap', (route) => false);
+        CustomSnackBar.showSuccess(
+          context: context,
+          message: "Google login successful",
+        );
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.newMap, (route) => false);
+        }
       } else {
-        SnackBarHelper.showError(context, "Google login failed");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Google login failed",
+        );
       }
     } catch (error) {
-      SnackBarHelper.showError(context, "Google sign-in error: $error");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Google sign-in error: $error",
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Widget _buildStyledTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required String hintText,
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.7),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword ? _obscurePassword : false,
+        keyboardType: keyboardType,
+        enabled: !_isLoading,
+        decoration: InputDecoration(
+          labelText: labelText,
+          hintText: hintText,
+          labelStyle: const TextStyle(
+            color: Colors.grey,
+            fontSize: 16,
+          ),
+          hintStyle: TextStyle(
+            color: Colors.grey.shade400,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: AppColor.primary,
+              width: 2,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade200),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16, 
+            horizontal: 20,
+          ),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: _togglePasswordVisibility,
+                )
+              : null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -138,38 +304,32 @@ class _LoginState extends State<Login> {
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 1),
-              BuildTextField(
+              _buildStyledTextField(
                 controller: _inputController,
-                label: 'Email',
-                hint: 'example@gmail.com',
+                labelText: 'Email',
+                hintText: 'example@gmail.com',
                 keyboardType: TextInputType.emailAddress,
               ),
-              const SizedBox(height: 15),
-              BuildTextField(
+              const SizedBox(height: 20),
+              _buildStyledTextField(
                 controller: _passwordController,
-                label: 'Password',
-                hint: 'Enter your password',
+                labelText: 'Password',
+                hintText: 'Enter your password',
                 isPassword: true,
               ),
               const SizedBox(height: 35),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/forgetpass"),
-                child: Text('Forgot your password?',
-                    style: TextStyle(color: AppColor.primary, fontSize: 16)),
+              CustomButton(
+                text: 'Forgot your password?',
+                type: ButtonType.text,
+                onPressed: _isLoading ? null : () => Navigator.pushNamed(context, AppRoutes.forgetPass),
               ),
               const Spacer(flex: 1),
-              SizedBox(
+              CustomButton(
+                text: 'Sign in',
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loginUser,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF91A800),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text('Sign in',
-                      style: TextStyle(fontSize: 20, color: Colors.white)),
-                ),
+                height: 56,
+                isLoading: _isLoading,
+                onPressed: _isLoading ? null : _loginUser,
               ),
               const SizedBox(height: 20),
               Row(
@@ -187,16 +347,19 @@ class _LoginState extends State<Login> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    onPressed: _handleGoogleLogin,
-                    icon: Image.asset('lib/image/g_logo.png', width: 40, height: 40),
+                    onPressed: _isLoading ? null : _handleGoogleLogin,
+                    icon: Opacity(
+                      opacity: _isLoading ? 0.5 : 1.0,
+                      child: Image.asset('lib/image/g_logo.png', width: 40, height: 40),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/signup'),
-                child: const Text('Create new account',
-                    style: TextStyle(fontSize: 16, color: Colors.grey)),
+              CustomButton(
+                text: 'Create new account',
+                type: ButtonType.text,
+                onPressed: _isLoading ? null : () => Navigator.pushNamed(context, AppRoutes.signup),
               ),
               const Spacer(flex: 1),
             ],

@@ -1,3 +1,1 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/constants/app_colors.dart';
-// ... rest of the file ... 
+// Settings screen placeholder 

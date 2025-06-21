@@ -13,12 +13,12 @@ class BusTripDetailedScreen extends StatefulWidget {
   final String end;
 
   const BusTripDetailedScreen({
-    Key? key,
+    super.key,
     required this.id,
     required this.number,
     required this.start,
     required this.end,
-  }) : super(key: key);
+  });
 
   @override
   State<BusTripDetailedScreen> createState() => _BusTripDetailedScreenState();
@@ -65,9 +65,9 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text('Failed to load trip details'));
+              return const Center(child: Text('Failed to load trip details'));
             } else if (!snapshot.hasData) {
-              return Center(child: Text('No trip details found'));
+              return const Center(child: Text('No trip details found'));
             }
             final trip = snapshot.data!;
             final busNumber = trip['busNumber']?.toString() ?? '';
@@ -225,7 +225,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             // مؤقتاً طباعة رسالة في الكونسول
-                            print("Show bus on map clicked");
+                            debugPrint("Show bus on map clicked");
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.primary,
@@ -250,7 +250,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => BusSchedulePage()),
+                              MaterialPageRoute(builder: (context) => const BusSchedulePage()),
                             );
                           },
                           style: ElevatedButton.styleFrom(

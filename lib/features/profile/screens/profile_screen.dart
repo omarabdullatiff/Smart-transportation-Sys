@@ -5,8 +5,10 @@ import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
   @override
-  _EditProfileScreenState createState() => _EditProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
@@ -20,9 +22,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     // Validate inputs before sending request
     if (username.isEmpty || email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill in all fields')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill in all fields')),
+        );
+      }
       return;
     }
 
@@ -31,14 +35,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final String? token = prefs.getString('auth_token'); // Retrieve token
 
     if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You are not logged in.' )),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You are not logged in.')),
+        );
+      }
       return;
     }
 
     // API request to update profile
-    final String url = 'http://smarttrackingapp.runasp.net/api/Account/UpdatecurrentUser';
+    const String url = 'http://smarttrackingapp.runasp.net/api/Account/UpdatecurrentUser';
     final Map<String, String> headers = {
       'accept': 'text/plain',
       'Content-Type': 'application/json',
@@ -57,26 +63,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         body: json.encode(body),
       );
 
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}'); // For debugging
+      debugPrint('Response Status: ${response.statusCode}');
+      debugPrint('Response Body: ${response.body}'); // For debugging
 
       if (response.statusCode == 200) {
         // Successfully updated
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully!')),
+          );
+        }
       } else {
         // Handle the error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: ${response.body}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update profile: ${response.body}')),
+          );
+        }
       }
     } catch (error) {
       // Handle network or other errors
-      print('Error: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $error')),
-      );
+      debugPrint('Error: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error')),
+        );
+      }
     }
   }
 
@@ -111,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.7),
+                      color: Colors.grey.withValues(alpha: 0.7),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -154,7 +166,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.7),
+                      color: Colors.grey.withValues(alpha: 0.7),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),

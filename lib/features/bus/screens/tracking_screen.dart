@@ -3,30 +3,30 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class TarcTrackingPage extends StatelessWidget {
-  TarcTrackingPage({Key? key}) : super(key: key);
+  const TarcTrackingPage({super.key});
 
-  final LatLng center = LatLng(30.0444, 31.2357); // Example: Cairo
+  final LatLng center = const LatLng(30.0444, 31.2357); // Example: Cairo
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF6F6F6),
+      backgroundColor: const Color(0xFFF6F6F6),
       body: Column(
         children: [
           // LIVE MAP (no API)
-          Container(
+          SizedBox(
             height: 250,
             child: Stack(
               children: [
                 FlutterMap(
                   options: MapOptions(
-                    center: center,
-                    zoom: 13.0,
+                    initialCenter: center,
+                    initialZoom: 13.0,
                   ),
                   children: [
                     TileLayer(
                       urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: ['a', 'b', 'c'],
+                      subdomains: const ['a', 'b', 'c'],
                     ),
                     MarkerLayer(
                       markers: [
@@ -34,7 +34,7 @@ class TarcTrackingPage extends StatelessWidget {
                           point: center,
                           width: 40,
                           height: 40,
-                          child: Icon(Icons.directions_bus, color: Colors.amber, size: 30),
+                          child: const Icon(Icons.directions_bus, color: Colors.amber, size: 30),
                         ),
                       ],
                     )
@@ -45,10 +45,10 @@ class TarcTrackingPage extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: Color(0xFF9FA122)),
+                        icon: const Icon(Icons.arrow_back, color: Color(0xFF9FA122)),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      Spacer(),
+                      const Spacer(),
                       IconButton(
                         icon: Icon(Icons.fullscreen, color: Colors.grey[700]),
                         onPressed: () {},
@@ -60,7 +60,7 @@ class TarcTrackingPage extends StatelessWidget {
             ),
           ),
           // OTHER UI ELEMENTS
-          Expanded(child: RouteDetails())
+          const Expanded(child: RouteDetails())
         ],
       ),
     );
@@ -68,7 +68,7 @@ class TarcTrackingPage extends StatelessWidget {
 }
 
 class RouteDetails extends StatelessWidget {
-  const RouteDetails({Key? key}) : super(key: key);
+  const RouteDetails({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -77,24 +77,24 @@ class RouteDetails extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("From", style: TextStyle(color: Colors.grey)),
-          Text("5th settlement", style: TextStyle(fontSize: 16)),
-          Divider(),
-          Text("To", style: TextStyle(color: Colors.grey)),
-          Text("Heliopolis", style: TextStyle(fontSize: 16)),
-          Divider(height: 32),
-          Text("TARC arrival time", style: TextStyle(fontSize: 18)),
-          SizedBox(height: 8),
+          const Text("From", style: TextStyle(color: Colors.grey)),
+          const Text("5th settlement", style: TextStyle(fontSize: 16)),
+          const Divider(),
+          const Text("To", style: TextStyle(color: Colors.grey)),
+          const Text("Heliopolis", style: TextStyle(fontSize: 16)),
+          const Divider(height: 32),
+          const Text("TARC arrival time", style: TextStyle(fontSize: 18)),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.directions_bus, color: Color(0xFF9FA122)),
-              SizedBox(width: 8),
-              Text("St", style: TextStyle(color: Colors.grey)),
-              Spacer(),
+              const Icon(Icons.directions_bus, color: Color(0xFF9FA122)),
+              const SizedBox(width: 8),
+              const Text("St", style: TextStyle(color: Colors.grey)),
+              const Spacer(),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text("ETA",
+                  const Text("ETA",
                       style: TextStyle(
                         color: Color(0xFF9FA122),
                         fontWeight: FontWeight.bold,
@@ -106,28 +106,28 @@ class RouteDetails extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16),
-          Text("TARC station stops", style: TextStyle(fontSize: 18)),
-          Text("TARC location", style: TextStyle(color: Colors.grey)),
-          Divider(),
+          const SizedBox(height: 16),
+          const Text("TARC station stops", style: TextStyle(fontSize: 18)),
+          const Text("TARC location", style: TextStyle(color: Colors.grey)),
+          const Divider(),
           _buildStop("completed", Colors.amber),
-          Divider(),
+          const Divider(),
           _buildStop("completed", Colors.amber),
-          Divider(),
+          const Divider(),
           _buildStop("On the way", Colors.red),
-          Spacer(),
+          const Spacer(),
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF9FA122),
+                backgroundColor: const Color(0xFF9FA122),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Text("Complete", style: TextStyle(fontSize: 18)),
+              child: const Text("Complete", style: TextStyle(fontSize: 18)),
             ),
           ),
         ],
@@ -146,8 +146,8 @@ class RouteDetails extends StatelessWidget {
             shape: BoxShape.circle,
           ),
         ),
-        SizedBox(width: 12),
-        Text(status, style: TextStyle(color: Colors.grey)),
+        const SizedBox(width: 12),
+        Text(status, style: const TextStyle(color: Colors.grey)),
       ],
     );
   }

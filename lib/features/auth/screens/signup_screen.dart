@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_1/core/constants/app_colors.dart';
-import 'package:flutter_application_1/shared/widgets/build_text_field.dart';
-import 'package:flutter_application_1/shared/widgets/snack.dart';
-
+import 'package:flutter_application_1/core/routes/app_routes.dart';
+import 'package:flutter_application_1/shared/widgets/custom_text_field.dart';
+import 'package:flutter_application_1/shared/widgets/custom_button.dart';
+import 'package:flutter_application_1/shared/widgets/custom_snackbar.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -15,6 +16,7 @@ class Signup extends StatefulWidget {
 
 class _SignupState extends State<Signup> {
   bool _isChecked = false;
+  bool _isLoading = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -25,6 +27,16 @@ class _SignupState extends State<Signup> {
     'accept': 'text/plain',
     'Content-Type': 'application/json',
   };
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _registerUser() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
@@ -32,48 +44,95 @@ class _SignupState extends State<Signup> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      SnackBarHelper.showError(context, "All fields are required");
+      CustomSnackBar.showError(
+        context: context,
+        message: "All fields are required",
+      );
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      SnackBarHelper.showError(context, "Enter a valid email address");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Enter a valid email address",
+      );
       return;
     }
     if (password != confirmPassword) {
-      SnackBarHelper.showError(context, "Passwords do not match");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Passwords do not match",
+      );
       return;
     }
-    // Send registration request
-    final response = await http.post(
-      Uri.parse('http://smarttrackingapp.runasp.net/api/Account/register'),
-      headers: _headers,
-      body: jsonEncode({
-        "displayName": name,
-        "email": email,
-        "password": password,
-      }),
-    );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      SnackBarHelper.showSuccess(context, "Registration successful");
-      Navigator.pushNamed(context, '/newmap');
-    } else {
-      try {
-        final error = jsonDecode(response.body);
-        final passwordErrors = error['errors']?['Password'];
-        final emailErrors = error['errors']?['Email'];
+    setState(() {
+      _isLoading = true;
+    });
 
-        if (passwordErrors != null && passwordErrors is List && passwordErrors.isNotEmpty) {
-          SnackBarHelper.showError(context, passwordErrors.first);
-        } else if (emailErrors != null && emailErrors is List && emailErrors.isNotEmpty) {
-          SnackBarHelper.showError(context, emailErrors.first);
-        } else if (error['title'] != null) {
-          SnackBarHelper.showError(context, error['title']);
-        } else {
-          SnackBarHelper.showError(context, "Registration failed. Please check your input.");
+    try {
+      // Send registration request
+      final response = await http.post(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Account/register'),
+        headers: _headers,
+        body: jsonEncode({
+          "displayName": name,
+          "email": email,
+          "password": password,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        CustomSnackBar.showSuccess(
+          context: context,
+          message: "Registration successful",
+        );
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.newMap, (route) => false);
         }
-      } catch (e) {
-        SnackBarHelper.showError(context, "Unexpected error. Please try again.");
+      } else {
+        try {
+          final error = jsonDecode(response.body);
+          final passwordErrors = error['errors']?['Password'];
+          final emailErrors = error['errors']?['Email'];
+
+          if (passwordErrors != null && passwordErrors is List && passwordErrors.isNotEmpty) {
+            CustomSnackBar.showError(
+              context: context,
+              message: passwordErrors.first,
+            );
+          } else if (emailErrors != null && emailErrors is List && emailErrors.isNotEmpty) {
+            CustomSnackBar.showError(
+              context: context,
+              message: emailErrors.first,
+            );
+          } else if (error['title'] != null) {
+            CustomSnackBar.showError(
+              context: context,
+              message: error['title'],
+            );
+          } else {
+            CustomSnackBar.showError(
+              context: context,
+              message: "Registration failed. Please check your input.",
+            );
+          }
+        } catch (e) {
+          CustomSnackBar.showError(
+            context: context,
+            message: "Unexpected error. Please try again.",
+          );
+        }
+      }
+    } catch (e) {
+      CustomSnackBar.showError(
+        context: context,
+        message: "Network error. Please check your connection.",
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -105,60 +164,65 @@ class _SignupState extends State<Signup> {
                     fontSize: 16, color: AppColor.accent, letterSpacing: 2),
               ),
               const Spacer(flex: 1),
-              BuildTextField(
+              CustomTextField(
                 label: 'Full Name',
                 hint: 'Enter your full name',
                 controller: _nameController,
+                prefixIcon: Icons.person_outline,
+                textCapitalization: TextCapitalization.words,
+                enabled: !_isLoading,
               ),
               const SizedBox(height: 20),
-              BuildTextField(
+              CustomTextField(
                 label: 'Email',
                 hint: 'Enter your email',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.email_outlined,
+                enabled: !_isLoading,
               ),
               const SizedBox(height: 20),
-              BuildTextField(
+              CustomTextField(
                 label: 'Password',
                 hint: 'Enter your password',
                 controller: _passwordController,
                 isPassword: true,
+                prefixIcon: Icons.lock_outline,
+                enabled: !_isLoading,
               ),
               const SizedBox(height: 20),
-              BuildTextField(
+              CustomTextField(
                 label: 'Confirm Password',
                 hint: 'Confirm your password',
                 controller: _confirmPasswordController,
                 isPassword: true,
+                prefixIcon: Icons.lock_outline,
+                enabled: !_isLoading,
               ),
               const SizedBox(height: 50),
               _buildTermsCheckbox(),
               const SizedBox(height: 20),
-              SizedBox(
+              CustomButton(
+                text: 'Sign up',
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isChecked
-                      ? _registerUser
-                      : () =>
-                      SnackBarHelper.showError(context,
-                          'Please agree to the Terms & Conditions and Privacy Policy.'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF91A800),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text('Sign up',
-                      style: TextStyle(fontSize: 20, color: Colors.white)),
-                ),
+                height: 56,
+                isLoading: _isLoading,
+                onPressed: (_isChecked && !_isLoading)
+                    ? _registerUser
+                    : () {
+                        if (!_isChecked) {
+                          CustomSnackBar.showWarning(
+                            context: context,
+                            message: 'Please agree to the Terms & Conditions and Privacy Policy.',
+                          );
+                        }
+                      },
               ),
               const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/login'),
-                child: const Text(
-                  'Already have an account? log in ',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
+              CustomButton(
+                text: 'Already have an account? log in',
+                type: ButtonType.text,
+                onPressed: _isLoading ? null : () => Navigator.pushNamed(context, AppRoutes.login),
               ),
               const Spacer(flex: 1),
             ],
@@ -168,14 +232,13 @@ class _SignupState extends State<Signup> {
     );
   }
 
-
   Widget _buildTermsCheckbox() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Checkbox(
           value: _isChecked,
-          onChanged: (value) => setState(() => _isChecked = value ?? false),
+          onChanged: _isLoading ? null : (value) => setState(() => _isChecked = value ?? false),
           activeColor: AppColor.primary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ),
@@ -208,66 +271,4 @@ class _SignupState extends State<Signup> {
       ],
     );
   }
-  //
-  // Widget _buildTermsCheckbox() {
-  //   return Row(
-  //     children: [
-  //       Container(
-  //         width: 24,
-  //         height: 24,
-  //         decoration: BoxDecoration(
-  //           borderRadius: BorderRadius.circular(6),
-  //           border: Border.all(
-  //             color: _isChecked ? AppColor.primary : Colors.grey,
-  //             width: 2,
-  //           ),
-  //           color: _isChecked ? AppColor.primary : Colors.transparent,
-  //         ),
-  //         child: Theme(
-  //           data: ThemeData(unselectedWidgetColor: Colors.transparent),
-  //           child: Checkbox(
-  //             value: _isChecked,
-  //             onChanged: (bool? value) => setState(() => _isChecked = value ?? false),
-  //             activeColor: Colors.transparent,
-  //             checkColor: Colors.white,
-  //             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  //           ),
-  //         ),
-  //       ),
-  //       const SizedBox(width: 10),
-  //       Expanded(
-  //         child: RichText(
-  //           text: TextSpan(
-  //             children: [
-  //               const TextSpan(
-  //                 text: 'I agree to the ',
-  //                 style: TextStyle(fontSize: 16, color: Colors.grey),
-  //               ),
-  //               TextSpan(
-  //                 text: 'Terms & Conditions',
-  //                 style: TextStyle(
-  //                   fontSize: 16,
-  //                   color: AppColor.primary,
-  //                   decoration: TextDecoration.underline,
-  //                 ),
-  //               ),
-  //               const TextSpan(
-  //                 text: ' and ',
-  //                 style: TextStyle(fontSize: 16, color: Colors.grey),
-  //               ),
-  //               TextSpan(
-  //                 text: 'Privacy Policy',
-  //                 style: TextStyle(
-  //                   fontSize: 16,
-  //                   color: AppColor.primary,
-  //                   decoration: TextDecoration.underline,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
 }

@@ -7,7 +7,7 @@ class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
 
   @override
-  _VerificationScreenState createState() => _VerificationScreenState();
+  State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
@@ -96,7 +96,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     )
                   ],
                   onCompleted: (v) {
-                    print("Completed");
+                    debugPrint("Completed");
                   },
                   onChanged: (value) {
                     setState(() {
@@ -104,7 +104,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     });
                   },
                   beforeTextPaste: (text) {
-                    print("Allowing to paste $text");
+                    debugPrint("Allowing to paste $text");
                     //if you return true then it will show the paste confirmation dialog. Otherwise if false, then nothing will happen.
                     //but you can show anything you want here, like your pop up saying wrong paste format or etc
                     return true;
@@ -151,7 +151,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   onPressed: () {
                     Navigator.pushNamed(context , "/changepass");
                     // TODO: Verify code logic
-                    print("Entered Pin: $currentText"); // Print the entered PIN
+                    debugPrint("Entered Pin: $currentText"); // Print the entered PIN
                   },
                   child: const Text(
                     'Verify',

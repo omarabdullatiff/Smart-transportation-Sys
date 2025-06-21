@@ -36,7 +36,9 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       final token = prefs.getString('auth_token');
 
       if (token == null) {
-        Navigator.pushReplacementNamed(context, '/login');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
         return;
       }
 
@@ -50,27 +52,33 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        print('API Response: $responseData'); // Debug log
-        setState(() {
-          userData = responseData;
-          isLoading = false;
-        });
+        //debugPrint('API Response: $responseData'); // Debug log
+        if (mounted) {
+          setState(() {
+            userData = responseData;
+            isLoading = false;
+          });
+        }
       } else {
         // Handle error - token might be invalid
         await prefs.clear();
-        Navigator.pushReplacementNamed(context, '/login');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      // Handle error
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load user data'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load user data'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -98,7 +106,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
               end: Alignment.bottomCenter,
               colors: [
                 AppColor.primary,
-                AppColor.primary.withOpacity(0.8),
+                AppColor.primary.withValues(alpha: 0.8),
               ],
             ),
           ),
@@ -116,7 +124,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Column(
                         children: [
                           Text(
-                            userData?['displayName'] ?? 'pola',
+                            userData?['displayName'] ?? 'omar',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -216,11 +224,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   onPressed: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.clear();
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/login',
-                      (route) => false,
-                    );
+                    if (mounted) {
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/login',
+                        (route) => false,
+                      );
+                    }
                   },
                   icon: const Icon(Icons.logout, size: 20),
                   label: const Text(
@@ -246,13 +256,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         children: [
           FlutterMap(
             options: MapOptions(
-              initialCenter: LatLng(30.0444, 31.2357),
+              initialCenter: const LatLng(30.0444, 31.2357),
               initialZoom: 15.0,
             ),
             children: [
               TileLayer(
                 urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
+                subdomains: const ['a', 'b', 'c'],
               ),
               MarkerLayer(
                 markers: busStops.map((stop) {
