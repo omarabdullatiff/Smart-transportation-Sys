@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:flutter_application_1/features/auth/screens/change_password_screen.dart';
 import 'package:flutter_application_1/core/routes/app_routes.dart';
+import 'package:flutter_application_1/core/providers/app_providers.dart';
+import 'package:flutter_application_1/features/auth/providers/auth_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
@@ -15,9 +18,9 @@ Uri? initialDeepLink;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
-  final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-  final token = prefs.getString('auth_token');
 
   // Handle initial deep link
   if (!kIsWeb) {
@@ -30,25 +33,37 @@ Future<void> main() async {
     }
   }
 
-  runApp(MyApp(isLoggedIn: isLoggedIn && token != null));
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Override the SharedPreferences provider with the actual instance
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatefulWidget {
-  final bool isLoggedIn;
-
-  const MyApp({super.key, required this.isLoggedIn});
+class MyApp extends ConsumerStatefulWidget {
+  const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   late final AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize authentication state from storage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).initializeFromStorage();
+    });
+
     if (!kIsWeb) {
       _initDeepLinks();
     }
@@ -128,6 +143,21 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch authentication state
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState.isLoggedIn;
+    final user = authState.user;
+
+    // Determine initial route based on auth state
+    String initialRoute = AppRoutes.welcome;
+    if (isLoggedIn && user != null) {
+      if (user.userType == 'admin') {
+        initialRoute = AppRoutes.adminDashboard;
+      } else {
+        initialRoute = AppRoutes.newMap;
+      }
+    }
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
@@ -138,7 +168,7 @@ class _MyAppState extends State<MyApp> {
         ),
         useMaterial3: true,
       ),
-      initialRoute: widget.isLoggedIn ? AppRoutes.newMap : AppRoutes.welcome,
+      initialRoute: initialRoute,
       routes: AppRoutes.getRoutes(),
     );
   }

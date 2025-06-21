@@ -37,7 +37,13 @@ dependencies:
   app_links: ^3.4.1
   url_launcher: ^6.3.1
 
-
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # Additional utilities for state management
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
 
 dev_dependencies:
   flutter_test:
@@ -68,3 +74,9 @@ flutter:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
+
+# Code generation for Riverpod
+riverpod_generator: ^2.4.3
+build_runner: ^2.4.13
+freezed: ^2.5.7
+json_serializable: ^6.8.0
