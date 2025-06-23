@@ -20,7 +20,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Initialize from storage (check if user is already logged in)
   Future<void> initializeFromStorage() async {
     state = state.copyWith(isLoading: true);
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -68,7 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
 
         await _saveUserData(adminUser, 'admin_token_placeholder');
-        
+
         state = state.copyWith(
           isLoggedIn: true,
           user: adminUser,
@@ -80,7 +80,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // Regular user login
       final result = await _authService.login(email, password);
-      
+
       if (result['success'] == true) {
         final user = UserModel.fromJson(result['user']);
         final token = result['token'];
@@ -116,7 +116,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final result = await _authService.register(name, email, password);
-      
+
       if (result['success'] == true) {
         final user = UserModel.fromJson(result['user']);
         final token = result['token'];
@@ -152,7 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final result = await _authService.googleLogin(idToken);
-      
+
       if (result['success'] == true) {
         final user = UserModel.fromJson(result['user']);
         final token = result['token'];
@@ -260,4 +260,4 @@ final isAdminProvider = Provider<bool>((ref) {
 
 final authTokenProvider = Provider<String?>((ref) {
   return ref.watch(authProvider).token;
-}); 
+});

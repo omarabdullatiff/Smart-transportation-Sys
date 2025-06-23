@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/features/admin/screens/driver_dashboard.dart';
 import 'package:flutter_application_1/features/auth/screens/login_screen.dart';
 import 'package:flutter_application_1/features/auth/screens/signup_screen.dart';
 import 'package:flutter_application_1/features/auth/screens/verification_screen.dart';
@@ -15,7 +16,7 @@ import 'package:flutter_application_1/features/profile/screens/settings_screen.d
 import 'package:flutter_application_1/features/bus/screens/seat_selection_screen.dart';
 import 'package:flutter_application_1/features/bus/screens/tracking_screen.dart';
 import 'package:flutter_application_1/features/admin/screens/admin_dashboard_screen.dart';
-
+import 'package:flutter_application_1/features/admin/screens/driver_dashboard.dart';
 class AppRoutes {
   static const String welcome = '/';
   static const String login = '/login';
@@ -34,6 +35,7 @@ class AppRoutes {
   static const String changePass = '/changepass';
   static const String debugResetPassword = '/debug_reset';
   static const String adminDashboard = '/admin';
+  static const String driver = '/driver';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -52,8 +54,10 @@ class AppRoutes {
       newMap: (context) => const BusTrackingScreen(),
       track: (context) => const TarcTrackingPage(),
       changePass: (context) => const NewPasswordScreen(email: '', code: ''),
-      debugResetPassword: (context) => const NewPasswordScreen(email: 'test@example.com', code: '123456'),
+      debugResetPassword: (context) =>
+          const NewPasswordScreen(email: 'test@example.com', code: '123456'),
       adminDashboard: (context) => const AdminDashboardScreen(),
+      driver: (context) => const LocationTracker(),
     };
   }
-} 
+}
