@@ -18,7 +18,7 @@ Uri? initialDeepLink;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
@@ -58,7 +58,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize authentication state from storage
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authProvider.notifier).initializeFromStorage();
@@ -76,7 +76,8 @@ class _MyAppState extends ConsumerState<MyApp> {
     try {
       // Check the global variable first (in case link opened the app)
       if (initialDeepLink != null) {
-        debugPrint('Handling initial deep link from global variable: $initialDeepLink');
+        debugPrint(
+            'Handling initial deep link from global variable: $initialDeepLink');
         _handleDeepLink(initialDeepLink!);
       }
     } catch (e) {
@@ -103,11 +104,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     debugPrint('============================================');
 
     // Accept any path as long as email and code parameters are present
-    if (uri.queryParameters.containsKey('email') && 
+    if (uri.queryParameters.containsKey('email') &&
         uri.queryParameters.containsKey('code')) {
       final email = uri.queryParameters['email']!;
       final code = uri.queryParameters['code']!;
-      debugPrint('Navigating to change password screen with email: $email and code: $code');
+      debugPrint(
+          'Navigating to change password screen with email: $email and code: $code');
 
       // Use a small delay to ensure the app is fully initialized
       Future.delayed(const Duration(milliseconds: 500), () {
