@@ -3,7 +3,6 @@ import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-// استيراد صفحة الجدول من ملفها الأصلي
 import 'package:flutter_application_1/features/bus/screens/bus_schedule_page.dart';
 
 class BusTripDetailedScreen extends StatefulWidget {
