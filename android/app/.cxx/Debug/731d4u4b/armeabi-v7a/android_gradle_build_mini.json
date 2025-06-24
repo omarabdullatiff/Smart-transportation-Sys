@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Applications/development/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/Omar/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/Omar/Downloads/Smart-transportation-Sys-main1/android/app/.cxx/Debug/731d4u4b/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/Omar/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/Omar/Downloads/Smart-transportation-Sys-main1/android/app/.cxx/Debug/731d4u4b/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

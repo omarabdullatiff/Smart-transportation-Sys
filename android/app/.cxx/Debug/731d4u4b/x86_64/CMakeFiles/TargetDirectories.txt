@@ -1,0 +1,2 @@
+/Users/Omar/Downloads/Smart-transportation-Sys-main1/android/app/.cxx/Debug/731d4u4b/x86_64/CMakeFiles/edit_cache.dir
+/Users/Omar/Downloads/Smart-transportation-Sys-main1/android/app/.cxx/Debug/731d4u4b/x86_64/CMakeFiles/rebuild_cache.dir
