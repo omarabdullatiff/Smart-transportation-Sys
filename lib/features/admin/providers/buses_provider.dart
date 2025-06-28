@@ -88,6 +88,37 @@ class BusesNotifier extends AsyncNotifier<List<Bus>> {
       throw Exception('Failed to delete bus: $e');
     }
   }
+
+  Future<bool> createBus({
+    required String model,
+    required int capacity,
+    required String status,
+  }) async {
+    try {
+      // Create the bus via API
+      await AdminApiService.createBus(
+        model: model,
+        capacity: capacity,
+        status: status,
+      );
+      
+      // Force refresh the list to show the new bus in UI
+      // This ensures the UI reflects the changes immediately
+      state = const AsyncLoading();
+      try {
+        final updatedBuses = await AdminApiService.getAllBuses();
+        state = AsyncData(updatedBuses);
+      } catch (e) {
+        // If refresh fails, set error state
+        state = AsyncError('Failed to refresh buses list: $e', StackTrace.current);
+      }
+      
+      return true;
+    } catch (e) {
+      // If there's an error, re-throw it so the UI can handle it
+      throw Exception('Failed to create bus: $e');
+    }
+  }
 }
 
 // Provider for the buses list

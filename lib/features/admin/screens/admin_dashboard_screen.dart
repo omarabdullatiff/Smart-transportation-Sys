@@ -12,6 +12,7 @@ import 'package:flutter_application_1/features/admin/models/driver_model.dart';
 import 'package:flutter_application_1/features/admin/models/bus_model.dart';
 import 'package:flutter_application_1/features/admin/screens/driver_location_dialog.dart';
 import 'package:flutter_application_1/features/admin/screens/driver_selection_dialog.dart';
+import 'package:flutter_application_1/features/admin/screens/create_bus_dialog.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -82,7 +83,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           tabs: const [
             Tab(
               icon: Icon(Icons.route),
-              text: 'Trip Management',
+              text: 'Bus Management',
             ),
             Tab(
               icon: Icon(Icons.person),
@@ -169,10 +170,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           children: [
             Expanded(
               child: ActionCard(
-                title: 'Create Trip',
+                title: 'Create Bus',
                 icon: Icons.add_circle,
                 color: AppColor.primary,
-                onTap: () => _showCreateTripDialog(),
+                onTap: () => _showCreateBusDialog(),
               ),
             ),
           ],
@@ -319,18 +320,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: bus.statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              bus.status,
-              style: TextStyle(
-                color: bus.statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: bus.statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                bus.status,
+                style: TextStyle(
+                  color: bus.statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ),
@@ -340,40 +345,69 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
               const PopupMenuItem(
                 value: 'edit',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.edit, size: 18),
                     SizedBox(width: 8),
-                    Text('Edit Bus'),
+                    Flexible(
+                      child: Text(
+                        'Edit Bus',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'status',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.toggle_on, size: 18),
                     SizedBox(width: 8),
-                    Text('Change Status'),
+                    Flexible(
+                      child: Text(
+                        'Change Status',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'assign',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.person_add, size: 18),
                     SizedBox(width: 8),
-                    Text('Assign Driver'),
+                    Flexible(
+                      child: Text(
+                        'Assign Driver',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.delete, size: 18, color: Colors.red),
                     SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: Colors.red)),
+                    Flexible(
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -727,18 +761,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: driver.statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              driver.statusText,
-              style: TextStyle(
-                color: driver.statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: driver.statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                driver.statusText,
+                style: TextStyle(
+                  color: driver.statusColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ),
@@ -748,40 +786,69 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
               const PopupMenuItem(
                 value: 'update',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.edit, size: 18),
                     SizedBox(width: 8),
-                    Text('Update Driver'),
+                    Flexible(
+                      child: Text(
+                        'Update Driver',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'assign',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.assignment, size: 18),
                     SizedBox(width: 8),
-                    Text('Assign Trip'),
+                    Flexible(
+                      child: Text(
+                        'Assign Trip',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'track',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.my_location, size: 18),
                     SizedBox(width: 8),
-                    Text('Track Location'),
+                    Flexible(
+                      child: Text(
+                        'Track Location',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const PopupMenuItem(
                 value: 'delete',
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.delete, size: 18, color: Colors.red),
                     SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: Colors.red)),
+                    Flexible(
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -792,54 +859,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     );
   }
 
-  void _showCreateTripDialog() {
-    final routeController = TextEditingController();
-    final startController = TextEditingController();
-    final endController = TextEditingController();
-    final recurrenceController = TextEditingController();
-
+  void _showCreateBusDialog() {
     showDialog(
       context: context,
-      builder: (context) => FormDialog(
-        title: 'Create New Trip',
-        fields: [
-          CustomTextField(
-            controller: routeController,
-            label: 'Route Name',
-            hint: 'Enter route name',
-            prefixIcon: Icons.route,
-          ),
-          const SizedBox(height: 16),
-          CustomTextField(
-            controller: startController,
-            label: 'Start Location',
-            hint: 'Enter start location',
-            prefixIcon: Icons.location_on,
-          ),
-          const SizedBox(height: 16),
-          CustomTextField(
-            controller: endController,
-            label: 'End Location',
-            hint: 'Enter end location',
-            prefixIcon: Icons.location_on_outlined,
-          ),
-          const SizedBox(height: 16),
-          CustomTextField(
-            controller: recurrenceController,
-            label: 'Recurrence (minutes)',
-            hint: 'Enter recurrence in minutes',
-            keyboardType: TextInputType.number,
-            prefixIcon: Icons.schedule,
-          ),
-        ],
-        onSave: () {
-          Navigator.pop(context);
-          CustomSnackBar.showSuccess(
-            context: context,
-            message: 'Trip created successfully!',
-          );
-        },
-      ),
+      builder: (context) => const CreateBusDialog(),
     );
   }
 

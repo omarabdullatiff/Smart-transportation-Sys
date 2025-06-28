@@ -229,7 +229,7 @@ class _LocationTrackerState extends State<LocationTracker> {
         Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "busId": 0,
+          "busId": 24,
           "latitude": location.latitude,
           "longitude": location.longitude,
         }),

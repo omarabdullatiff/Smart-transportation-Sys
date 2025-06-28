@@ -258,4 +258,38 @@ class AdminApiService {
       throw Exception('Error deleting bus: $e');
     }
   }
+
+  static Future<Bus> createBus({
+    required String model,
+    required int capacity,
+    required String status,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/AdminBus'),
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'id': 0,
+          'licensePlate': 'AUTO-${DateTime.now().millisecondsSinceEpoch}', // Auto-generated license plate
+          'model': model,
+          'capacity': capacity,
+          'status': status,
+          'origin': 'To be assigned', // Default value
+          'destination': 'To be assigned', // Default value
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+        return Bus.fromJson(json);
+      } else {
+        throw Exception('Failed to create bus: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error creating bus: $e');
+    }
+  }
 } 
