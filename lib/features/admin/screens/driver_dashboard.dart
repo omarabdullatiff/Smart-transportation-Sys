@@ -229,7 +229,7 @@ class _LocationTrackerState extends State<LocationTracker> {
         Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "busId": 24,
+          "busId": 1,
           "latitude": location.latitude,
           "longitude": location.longitude,
         }),
@@ -243,7 +243,8 @@ class _LocationTrackerState extends State<LocationTracker> {
   Future<void> _fetchLastServerLocation() async {
     try {
       final response = await http.get(
-        Uri.parse('http://smarttrackingapp.runasp.net/api/AdminDriver/1/location'),
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/1'),
+        headers: {'accept': '*/*'},
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
