@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:signalr_netcore/signalr_client.dart';
 
 class BusTrackingScreen extends StatefulWidget {
   const BusTrackingScreen({super.key});
@@ -16,7 +17,7 @@ class BusTrackingScreen extends StatefulWidget {
 
 class _BusTrackingScreenState extends State<BusTrackingScreen> {
   final MapController _mapController = MapController();
-  Timer? _locationTimer;
+  HubConnection? _hubConnection;
   
   Map<String, dynamic>? userData;
   bool isLoading = true;
@@ -26,8 +27,11 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   LatLng? _currentDriverLocation;
   bool _isTrackingActive = false;
   DateTime? _lastLocationUpdate;
-  static const Duration updateInterval = Duration(seconds: 10);
   final LatLng _defaultCenter = const LatLng(30.033333, 31.233334); // Cairo default
+  
+  // SignalR connection status
+  bool _isConnected = false;
+  String _connectionStatus = 'Disconnected';
 
   @override
   void initState() {
@@ -37,7 +41,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   @override
   void dispose() {
-    _locationTimer?.cancel();
+    _hubConnection?.stop();
     super.dispose();
   }
 
@@ -45,10 +49,10 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     setState(() {
       _isTrackingActive = true;
       _routePoints.clear(); // Clear previous route
+      _connectionStatus = 'Connecting...';
     });
     
-    _fetchDriverLocation(); // Initial fetch
-    _locationTimer = Timer.periodic(updateInterval, (_) => _fetchDriverLocation());
+    await _connectToSignalR();
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -59,11 +63,12 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   }
 
   Future<void> _stopRouteTracking() async {
-    _locationTimer?.cancel();
-    _locationTimer = null;
+    await _hubConnection?.stop();
     
     setState(() {
       _isTrackingActive = false;
+      _isConnected = false;
+      _connectionStatus = 'Disconnected';
     });
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -84,40 +89,65 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     );
   }
 
-  Future<void> _fetchDriverLocation() async {
+  Future<void> _connectToSignalR() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/1'),
-        headers: {'accept': '*/*'},
-      );
+      // Create SignalR connection
+      _hubConnection = HubConnectionBuilder()
+          .withUrl('http://smarttrackingapp.runasp.net/trackinghub')
+          .build();
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final newLocation = LatLng(
-          data['latitude'].toDouble(),
-          data['longitude'].toDouble(),
-        );
+      // Set up location update handler
+      _hubConnection!.on('LocationUpdate', (List<Object?>? arguments) {
+        if (arguments != null && arguments.isNotEmpty) {
+          final data = arguments[0] as Map<String, dynamic>;
+          final newLocation = LatLng(
+            (data['latitude'] as num).toDouble(),
+            (data['longitude'] as num).toDouble(),
+          );
 
-        // Check if location actually changed to avoid duplicate points
-        bool locationChanged = _currentDriverLocation == null ||
-            _currentDriverLocation!.latitude != newLocation.latitude ||
-            _currentDriverLocation!.longitude != newLocation.longitude;
+          // Check if location actually changed to avoid duplicate points
+          bool locationChanged = _currentDriverLocation == null ||
+              _currentDriverLocation!.latitude != newLocation.latitude ||
+              _currentDriverLocation!.longitude != newLocation.longitude;
 
-        if (locationChanged) {
-          setState(() {
-            _currentDriverLocation = newLocation;
-            _routePoints.add(newLocation);
-            _lastLocationUpdate = DateTime.now();
-          });
+          if (locationChanged && mounted) {
+            setState(() {
+              _currentDriverLocation = newLocation;
+              _routePoints.add(newLocation);
+              _lastLocationUpdate = DateTime.now();
+            });
 
-          // Center map on new location
-          _mapController.move(newLocation, _mapController.camera.zoom);
+            // Center map on new location
+            _mapController.move(newLocation, _mapController.camera.zoom);
+          }
         }
-      } else {
-        debugPrint("Failed to fetch driver location: ${response.statusCode}");
+      });
+
+      // Handle connection state changes (simplified)
+      debugPrint('Setting up SignalR connection handlers');
+
+      // Start the connection
+      await _hubConnection!.start();
+      
+      if (mounted) {
+        setState(() {
+          _isConnected = true;
+          _connectionStatus = 'Connected';
+        });
       }
+
+      // Join the tracking group for bus ID 1
+      await _hubConnection!.invoke('JoinTrackingGroup', args: ['1']);
+      
+      debugPrint('SignalR connected successfully');
     } catch (e) {
-      debugPrint("Error fetching driver location: $e");
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+          _connectionStatus = 'Connection failed';
+        });
+      }
+      debugPrint('SignalR connection error: $e');
     }
   }
 
@@ -198,20 +228,20 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _isTrackingActive ? Colors.green : Colors.grey,
+                color: _isConnected ? Colors.green : (_isTrackingActive ? Colors.orange : Colors.grey),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _isTrackingActive ? Icons.gps_fixed : Icons.gps_off,
+                    _isConnected ? Icons.signal_cellular_alt : (_isTrackingActive ? Icons.sync : Icons.signal_cellular_off),
                     size: 14,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _isTrackingActive ? 'LIVE' : 'OFF',
+                    _isConnected ? 'LIVE' : (_isTrackingActive ? 'SYNC' : 'OFF'),
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -431,8 +461,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Expanded(
                         child: _buildRouteInfo(
                           'Status',
-                          _isTrackingActive ? 'Tracking' : 'Stopped',
-                          _isTrackingActive ? Colors.green : Colors.red,
+                          _connectionStatus,
+                          _isConnected ? Colors.green : (_isTrackingActive ? Colors.orange : Colors.red),
                         ),
                       ),
                     ],
