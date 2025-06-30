@@ -23,10 +23,14 @@ final appInitializationProvider = FutureProvider<bool>((ref) async {
   // Initialize app dependencies
   final prefs = ref.read(sharedPreferencesProvider);
   
-  // Check if user is logged in
+  // Check if user is logged in and perform initialization based on login state
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
   
-  // Initialize other app state if needed
+  // Initialize app state based on login status
+  if (isLoggedIn) {
+    // Initialize user-specific data
+    ref.read(currentLocationProvider.notifier).state = null;
+  }
   
   return true;
 }); 

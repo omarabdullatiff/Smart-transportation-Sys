@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_application_1/features/auth/models/user_model.dart';
 import 'package:flutter_application_1/features/auth/services/auth_service.dart';
 
@@ -13,9 +11,8 @@ final authServiceProvider = Provider<AuthService>((ref) {
 // Auth state notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
-  final Ref _ref;
 
-  AuthNotifier(this._authService, this._ref) : super(const AuthState());
+  AuthNotifier(this._authService) : super(const AuthState());
 
   // Initialize from storage (check if user is already logged in)
   Future<void> initializeFromStorage() async {
@@ -241,7 +238,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // Auth provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authService = ref.read(authServiceProvider);
-  return AuthNotifier(authService, ref);
+  return AuthNotifier(authService);
 });
 
 // Convenience providers

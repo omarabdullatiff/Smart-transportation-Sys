@@ -16,7 +16,6 @@ import 'package:flutter_application_1/features/profile/screens/settings_screen.d
 import 'package:flutter_application_1/features/bus/screens/seat_selection_screen.dart';
 import 'package:flutter_application_1/features/bus/screens/tracking_screen.dart';
 import 'package:flutter_application_1/features/admin/screens/admin_dashboard_screen.dart';
-import 'package:flutter_application_1/features/admin/screens/driver_dashboard.dart';
 class AppRoutes {
   static const String welcome = '/';
   static const String login = '/login';

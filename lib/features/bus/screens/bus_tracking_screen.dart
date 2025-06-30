@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:signalr_netcore/signalr_client.dart';
 
 class BusTrackingScreen extends StatefulWidget {
@@ -23,7 +25,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   bool isLoading = true;
   
   // New variables for route tracking
-  List<LatLng> _routePoints = [];
+  final List<LatLng> _routePoints = [];
   LatLng? _currentDriverLocation;
   bool _isTrackingActive = false;
   DateTime? _lastLocationUpdate;
@@ -137,7 +139,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       }
 
       // Join the tracking group for bus ID 1
-      await _hubConnection!.invoke('JoinTrackingGroup', args: ['1']);
+      await _hubConnection!.invoke('JoinGroup', args: ['1']);
       
       debugPrint('SignalR connected successfully');
     } catch (e) {
@@ -495,64 +497,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
           
           // Map
           Expanded(
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _currentDriverLocation ?? _defaultCenter,
-                    initialZoom: 15.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: const ['a', 'b', 'c'],
-                    ),
-                    // Route polyline
-                    if (_routePoints.length > 1)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: _routePoints,
-                            strokeWidth: 4.0,
-                            color: AppColor.primary,
-                          ),
-                        ],
-                      ),
-                    // Driver location marker only
-                    if (_currentDriverLocation != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 50.0,
-                            height: 50.0,
-                            point: _currentDriverLocation!,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.directions_car,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ],
-            ),
+            child: _buildMapWidget(),
           ),
           
           // Control buttons
@@ -662,6 +607,172 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMapWidget() {
+    // Handle OpenGL ES API issues on iOS simulator
+    if (kDebugMode && Platform.isIOS) {
+      // Use simplified rendering for iOS simulator
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Stack(
+          children: [
+            // Fallback map for iOS simulator
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Map View',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_currentDriverLocation != null) ...[
+                    Text(
+                      'Bus Location:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    Text(
+                      '${_currentDriverLocation!.latitude.toStringAsFixed(6)}, ${_currentDriverLocation!.longitude.toStringAsFixed(6)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Bus marker overlay
+            if (_currentDriverLocation != null)
+              Positioned(
+                top: 100,
+                left: MediaQuery.of(context).size.width / 2 - 25,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.directions_car,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    // Full FlutterMap for real devices
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _currentDriverLocation ?? _defaultCenter,
+            initialZoom: 15.0,
+            // Add performance optimizations
+            keepAlive: false,
+            interactionOptions: const InteractionOptions(
+              enableScrollWheel: true,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+              subdomains: const ['a', 'b', 'c'],
+              // Add error handling and performance settings
+              userAgentPackageName: 'com.example.flutter_application_1',
+              tileProvider: NetworkTileProvider(),
+              // Reduce memory usage
+              maxZoom: 19,
+              minZoom: 5,
+            ),
+            // Route polyline
+            if (_routePoints.length > 1)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    strokeWidth: 4.0,
+                    color: AppColor.primary,
+                  ),
+                ],
+              ),
+            // Driver location marker
+            if (_currentDriverLocation != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    width: 50.0,
+                    height: 50.0,
+                    point: _currentDriverLocation!,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.directions_car,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
