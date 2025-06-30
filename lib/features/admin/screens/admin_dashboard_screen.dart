@@ -394,6 +394,24 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 ),
               ),
               const PopupMenuItem(
+                value: 'unassign',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person_remove, size: 18, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Unassign Driver',
+                        style: TextStyle(color: Colors.orange),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -421,16 +439,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   void _handleBusAction(String action, Bus bus) {
     switch (action) {
       case 'edit':
-        CustomSnackBar.showInfo(
-          context: context,
-          message: 'Edit bus ${bus.licensePlate} functionality coming soon...',
-        );
+        _showEditBusDialog(bus);
         break;
       case 'status':
         _showBusStatusDialog(bus);
         break;
       case 'assign':
         _showDriverSelectionDialog(bus);
+        break;
+      case 'unassign':
+        _showUnassignDriverConfirmation(bus);
         break;
       case 'delete':
         _showDeleteBusConfirmation(bus);
@@ -534,6 +552,45 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           CustomSnackBar.showError(
             context: context,
             message: 'Failed to delete bus ${bus.licensePlate}: ${e.toString()}',
+          );
+        }
+      }
+    }
+  }
+
+  void _showUnassignDriverConfirmation(Bus bus) async {
+    final confirmed = await CustomDialog.showConfirmation(
+      context: context,
+      title: 'Unassign Driver',
+      message: 'Are you sure you want to unassign the driver from bus ${bus.licensePlate}?\n\nThe bus will become available for assignment.',
+      confirmText: 'Unassign',
+      confirmType: ButtonType.secondary,
+      icon: Icons.person_remove,
+      iconColor: Colors.orange,
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        // Show loading indicator
+        CustomSnackBar.showInfo(
+          context: context,
+          message: 'Unassigning driver from bus ${bus.licensePlate}...',
+        );
+
+        // Call the API to unassign driver from bus
+        final success = await ref.read(busesProvider.notifier).unassignDriverFromBus(bus.id);
+
+        if (success && mounted) {
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: 'Driver unassigned from bus ${bus.licensePlate} successfully! Refreshing list...',
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          CustomSnackBar.showError(
+            context: context,
+            message: 'Failed to unassign driver from bus ${bus.licensePlate}: ${e.toString()}',
           );
         }
       }
@@ -864,6 +921,192 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       context: context,
       builder: (context) => const CreateBusDialog(),
     );
+  }
+
+  void _showEditBusDialog(Bus bus) {
+    final modelController = TextEditingController(text: bus.model);
+    final capacityController = TextEditingController(text: bus.capacity.toString());
+    BusStatus selectedStatus = bus.busStatus;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+
+          return AlertDialog(
+            title: Text('Edit Bus ${bus.licensePlate}'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomTextField(
+                    controller: modelController,
+                    label: 'Bus Model',
+                    hint: 'Enter bus model',
+                    prefixIcon: Icons.directions_bus,
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    controller: capacityController,
+                    label: 'Capacity',
+                    hint: 'Enter passenger capacity',
+                    keyboardType: TextInputType.number,
+                    prefixIcon: Icons.airline_seat_recline_normal,
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Status',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<BusStatus>(
+                            value: selectedStatus,
+                            isExpanded: true,
+                            icon: const Icon(Icons.arrow_drop_down),
+                            onChanged: (BusStatus? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  selectedStatus = newValue;
+                                });
+                              }
+                            },
+                            items: BusStatus.values.map((BusStatus status) {
+                              return DropdownMenuItem<BusStatus>(
+                                value: status,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: _getStatusColor(status),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(status.stringValue),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  // Validate input
+                  if (modelController.text.trim().isEmpty ||
+                      capacityController.text.trim().isEmpty) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please fill in all fields',
+                    );
+                    return;
+                  }
+
+                  final capacity = int.tryParse(capacityController.text.trim());
+                  if (capacity == null || capacity <= 0) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please enter a valid capacity',
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    isLoading = true;
+                  });
+
+                  try {
+                    // Call the API to update the bus (only updating model, capacity, status)
+                    await ref.read(busesProvider.notifier).updateBus(
+                      id: bus.id,
+                      licensePlate: bus.licensePlate, // Keep original
+                      model: modelController.text.trim(),
+                      capacity: capacity,
+                      status: selectedStatus.stringValue,
+                      origin: bus.origin, // Keep original
+                      destination: bus.destination, // Keep original
+                    );
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      CustomSnackBar.showSuccess(
+                        context: context,
+                        message: 'Bus ${bus.licensePlate} updated successfully! Refreshing list...',
+                      );
+                    }
+                  } catch (e) {
+                    setState(() {
+                      isLoading = false;
+                    });
+                    
+                    if (mounted) {
+                      CustomSnackBar.showError(
+                        context: context,
+                        message: 'Failed to update bus: ${e.toString()}',
+                      );
+                    }
+                  }
+                },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Update Bus'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Color _getStatusColor(BusStatus status) {
+    switch (status) {
+      case BusStatus.active:
+        return Colors.green;
+      case BusStatus.inactive:
+        return Colors.grey;
+      case BusStatus.maintenance:
+        return Colors.orange;
+      case BusStatus.outOfService:
+        return Colors.red;
+    }
   }
 
   void _showAddDriverDialog() {

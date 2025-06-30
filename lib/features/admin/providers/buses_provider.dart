@@ -64,6 +64,31 @@ class BusesNotifier extends AsyncNotifier<List<Bus>> {
     }
   }
 
+  Future<bool> unassignDriverFromBus(int busId) async {
+    try {
+      // Unassign the driver from bus via API
+      final success = await AdminApiService.unassignDriverFromBus(busId);
+      
+      if (success) {
+        // Force refresh the list to show the updated bus assignments
+        // This ensures the UI reflects the changes immediately
+        state = const AsyncLoading();
+        try {
+          final updatedBuses = await AdminApiService.getAllBuses();
+          state = AsyncData(updatedBuses);
+        } catch (e) {
+          // If refresh fails, set error state
+          state = AsyncError('Failed to refresh buses list: $e', StackTrace.current);
+        }
+      }
+      
+      return success;
+    } catch (e) {
+      // If there's an error, re-throw it so the UI can handle it
+      throw Exception('Failed to unassign driver from bus: $e');
+    }
+  }
+
   Future<bool> deleteBus(int busId) async {
     try {
       // Delete the bus via API
@@ -117,6 +142,45 @@ class BusesNotifier extends AsyncNotifier<List<Bus>> {
     } catch (e) {
       // If there's an error, re-throw it so the UI can handle it
       throw Exception('Failed to create bus: $e');
+    }
+  }
+
+  Future<bool> updateBus({
+    required int id,
+    required String licensePlate,
+    required String model,
+    required int capacity,
+    required String status,
+    required String origin,
+    required String destination,
+  }) async {
+    try {
+      // Update the bus via API
+      await AdminApiService.updateBus(
+        id: id,
+        licensePlate: licensePlate,
+        model: model,
+        capacity: capacity,
+        status: status,
+        origin: origin,
+        destination: destination,
+      );
+      
+      // Force refresh the list to show the updated bus in UI
+      // This ensures the UI reflects the changes immediately
+      state = const AsyncLoading();
+      try {
+        final updatedBuses = await AdminApiService.getAllBuses();
+        state = AsyncData(updatedBuses);
+      } catch (e) {
+        // If refresh fails, set error state
+        state = AsyncError('Failed to refresh buses list: $e', StackTrace.current);
+      }
+      
+      return true;
+    } catch (e) {
+      // If there's an error, re-throw it so the UI can handle it
+      throw Exception('Failed to update bus: $e');
     }
   }
 }

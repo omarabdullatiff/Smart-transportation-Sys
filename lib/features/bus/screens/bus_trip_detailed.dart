@@ -33,14 +33,23 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
   }
 
   Future<Map<String, dynamic>> fetchTrip(String id) async {
-    final response = await http.get(
-      Uri.parse('http://smarttrackingapp.runasp.net/api/Bus/$id/trip-details'),
-      headers: {'accept': 'application/json'},
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load trip details');
+    try {
+      final response = await http.get(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Bus/$id/trip-details'),
+        headers: {'accept': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('API Response: $data'); // Debug logging
+        return data;
+      } else {
+        debugPrint('API Error: ${response.statusCode} - ${response.body}');
+        throw Exception('API returned ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Network Error: $e');
+      throw Exception('Network error: $e');
     }
   }
 
@@ -62,17 +71,89 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
           future: tripFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading trip details...'),
+                  ],
+                ),
+              );
             } else if (snapshot.hasError) {
-              return const Center(child: Text('Failed to load trip details'));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Failed to load trip details',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            tripFuture = fetchTrip(widget.id);
+                          });
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             } else if (!snapshot.hasData) {
               return const Center(child: Text('No trip details found'));
             }
+            
             final trip = snapshot.data!;
-            final busNumber = trip['busNumber']?.toString() ?? '';
-            final origin = trip['origin']?.toString() ?? '';
-            final destination = trip['destination']?.toString() ?? '';
-            final List stops = trip['stops'] ?? [];
+            debugPrint('Trip data keys: ${trip.keys.toList()}'); // Debug logging
+            
+            // Use fallback values and multiple possible field names
+            final busNumber = trip['busNumber']?.toString() ?? 
+                             trip['number']?.toString() ?? 
+                             widget.number;
+            final origin = trip['origin']?.toString() ?? 
+                          trip['start']?.toString() ?? 
+                          trip['from']?.toString() ?? 
+                          widget.start;
+            final destination = trip['destination']?.toString() ?? 
+                               trip['end']?.toString() ?? 
+                               trip['to']?.toString() ?? 
+                               widget.end;
+            
+            // Handle different possible structures for stops
+            List stops = [];
+            if (trip['stops'] != null) {
+              stops = trip['stops'] is List ? trip['stops'] : [];
+            } else if (trip['stations'] != null) {
+              stops = trip['stations'] is List ? trip['stations'] : [];
+            } else if (trip['routes'] != null) {
+              stops = trip['routes'] is List ? trip['routes'] : [];
+            }
+            
+            // If no stops from API, create default stops from origin and destination
+            if (stops.isEmpty && origin.isNotEmpty && destination.isNotEmpty) {
+              stops = [origin, destination];
+            }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,69 +244,134 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: stops.length,
-                    itemBuilder: (context, index) {
-                      final isFirst = index == 0;
-                      final isLast = index == stops.length - 1;
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: isFirst || isLast ? AppColor.primary : Colors.white,
-                                  border: Border.all(color: AppColor.primary, width: 2),
-                                  shape: BoxShape.circle,
-                                ),
+                  child: stops.isEmpty 
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.route_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No stops available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
                               ),
-                              if (!isLast)
-                                Container(
-                                  width: 2,
-                                  height: 32,
-                                  margin: const EdgeInsets.symmetric(vertical: 2),
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: AppColor.primary,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Trip route: $origin → $destination',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: stops.length,
+                        itemBuilder: (context, index) {
+                          final isFirst = index == 0;
+                          final isLast = index == stops.length - 1;
+                          
+                          // Extract only the stop name from stop object
+                          String stopName = 'Unknown Stop';
+                          final stop = stops[index];
+                          
+                          if (stop != null) {
+                            if (stop is Map<String, dynamic>) {
+                              // Extract the "stop" field from the stop object
+                              stopName = stop['stop']?.toString() ?? 
+                                        stop['name']?.toString() ?? 
+                                        stop['stopName']?.toString() ?? 
+                                        stop['stationName']?.toString() ?? 
+                                        'Unknown Stop';
+                            } else {
+                              // If stop is already a string
+                              stopName = stop.toString();
+                            }
+                          }
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  children: [
+                                    Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        color: isFirst || isLast ? AppColor.primary : Colors.white,
+                                        border: Border.all(color: AppColor.primary, width: 2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    if (!isLast)
+                                      Container(
                                         width: 2,
-                                        style: BorderStyle.solid,
+                                        height: 40,
+                                        margin: const EdgeInsets.symmetric(vertical: 4),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            left: BorderSide(
+                                              color: AppColor.primary,
+                                              width: 2,
+                                              style: BorderStyle.solid,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: (isFirst || isLast) 
+                                        ? AppColor.primary.withValues(alpha: 0.1)
+                                        : Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: (isFirst || isLast) 
+                                          ? AppColor.primary.withValues(alpha: 0.3)
+                                          : Colors.grey.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      stopName,
+                                      style: TextStyle(
+                                        color: (isFirst || isLast) ? AppColor.primary : Colors.black87,
+                                        fontSize: 16,
+                                        fontWeight: (isFirst || isLast) ? FontWeight.w600 : FontWeight.normal,
                                       ),
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              stops[index],
-                              style: TextStyle(
-                                color: AppColor.primary,
-                                fontSize: 18,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
+                              ],
                             ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 24, top: 12),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // مؤقتاً طباعة رسالة في الكونسول
-                            debugPrint("Show bus on map clicked");
-                          },
+                                              Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/newMap');
+                            },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.primary,
                             shape: RoundedRectangleBorder(

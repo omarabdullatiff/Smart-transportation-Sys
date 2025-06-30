@@ -201,13 +201,14 @@ class AdminApiService {
 
   static Future<bool> changeBusStatus(int busId, int status) async {
     try {
+      // Convert integer status to string value
+      final statusString = BusStatus.fromIntValue(status).stringValue;
+      
       final response = await http.put(
-        Uri.parse('$_baseUrl/AdminTrip/$busId/status'),
+        Uri.parse('$_baseUrl/AdminBus/$busId/status?status=$statusString'),
         headers: {
           'accept': '*/*',
-          'Content-Type': 'application/json',
         },
-        body: json.encode({'status': status}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -223,11 +224,15 @@ class AdminApiService {
   static Future<bool> assignDriverToBus(int busId, int driverId) async {
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/AdminTrip/$busId/assign-driver/$driverId'),
+        Uri.parse('$_baseUrl/AdminBus/assign-driver'),
         headers: {
           'accept': '*/*',
+          'Content-Type': 'application/json',
         },
-        body: '',
+        body: json.encode({
+          'busId': busId,
+          'driverId': driverId,
+        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
@@ -237,6 +242,29 @@ class AdminApiService {
       }
     } catch (e) {
       throw Exception('Error assigning driver to bus: $e');
+    }
+  }
+
+  static Future<bool> unassignDriverFromBus(int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/AdminBus/unassign-driver'),
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'busId': busId,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+        return true; // Successfully unassigned
+      } else {
+        throw Exception('Failed to unassign driver from bus: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error unassigning driver from bus: $e');
     }
   }
 
@@ -290,6 +318,58 @@ class AdminApiService {
       }
     } catch (e) {
       throw Exception('Error creating bus: $e');
+    }
+  }
+
+  static Future<Bus> updateBus({
+    required int id,
+    required String licensePlate,
+    required String model,
+    required int capacity,
+    required String status,
+    required String origin,
+    required String destination,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_baseUrl/AdminBus/$id'),
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'id': id,
+          'licensePlate': licensePlate,
+          'model': model,
+          'capacity': capacity,
+          'status': status,
+          'origin': origin,
+          'destination': destination,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        // For 204 No Content, return updated bus object with the new data
+        if (response.statusCode == 204 || response.body.isEmpty) {
+          return Bus(
+            id: id,
+            licensePlate: licensePlate,
+            model: model,
+            capacity: capacity,
+            status: status,
+            origin: origin,
+            destination: destination,
+          );
+        } else {
+          // For 200 with response body
+          final Map<String, dynamic> json = jsonDecode(response.body);
+          return Bus.fromJson(json);
+        }
+      } else {
+        throw Exception('Failed to update bus: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating bus: $e');
     }
   }
 } 

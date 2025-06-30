@@ -444,7 +444,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                         Expanded(
                           child: _buildRouteInfo(
                             'Latitude',
-                            _currentDriverLocation!.latitude.toStringAsFixed(6),
+                            _currentDriverLocation!.latitude.toString(),
                             Colors.grey[700]!,
                           ),
                         ),
@@ -452,7 +452,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                         Expanded(
                           child: _buildRouteInfo(
                             'Longitude',
-                            _currentDriverLocation!.longitude.toStringAsFixed(6),
+                            _currentDriverLocation!.longitude.toString(),
                             Colors.grey[700]!,
                           ),
                         ),

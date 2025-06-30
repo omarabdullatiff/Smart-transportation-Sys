@@ -181,7 +181,10 @@ class _LocationTrackerState extends State<LocationTracker> {
 
   Future<void> _updateLocation() async {
     try {
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 10),
+      );
       final newLocation = LatLng(position.latitude, position.longitude);
 
       final locationChanged = _currentLocation == null ||
@@ -225,16 +228,21 @@ class _LocationTrackerState extends State<LocationTracker> {
 
   Future<void> _sendLocationToServer(LatLng location) async {
     try {
+      // Ensure full precision is maintained
+      final Map<String, dynamic> locationData = {
+        "busId": 1,
+        "latitude": location.latitude,
+        "longitude": location.longitude,
+      };
+      
       final response = await http.post(
         Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "busId": 1,
-          "latitude": location.latitude,
-          "longitude": location.longitude,
-        }),
+        body: jsonEncode(locationData),
       );
-      debugPrint("Location sent. Status: ${response.statusCode}");
+      
+      debugPrint("Location sent with full precision: lat=${location.latitude}, lng=${location.longitude}");
+      debugPrint("Status: ${response.statusCode}");
     } catch (e) {
       debugPrint("POST error: $e");
     }
@@ -387,7 +395,7 @@ class _LocationTrackerState extends State<LocationTracker> {
                       Expanded(
                         child: _buildStatusInfo(
                           'Latitude',
-                          _currentLocation!.latitude.toStringAsFixed(6),
+                          _currentLocation!.latitude.toString(),
                           Colors.grey[700]!,
                         ),
                       ),
@@ -395,7 +403,7 @@ class _LocationTrackerState extends State<LocationTracker> {
                       Expanded(
                         child: _buildStatusInfo(
                           'Longitude',
-                          _currentLocation!.longitude.toStringAsFixed(6),
+                          _currentLocation!.longitude.toString(),
                           Colors.grey[700]!,
                         ),
                       ),

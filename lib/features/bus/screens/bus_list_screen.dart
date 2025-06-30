@@ -8,14 +8,22 @@ class BusListView extends StatelessWidget {
   const BusListView({super.key});
 
   void _onBusTap(BuildContext context, Map<String, dynamic> bus) {
+    final busId = bus['id']?.toString() ?? bus['number']?.toString() ?? '';
+    final busNumber = bus['number']?.toString() ?? '';
+    final origin = bus['org']?.toString() ?? bus['origin']?.toString() ?? '';
+    final destination = bus['dest']?.toString() ?? bus['destination']?.toString() ?? '';
+    
+    debugPrint('Bus data: $bus'); // Debug logging
+    debugPrint('Navigating with: id=$busId, number=$busNumber, start=$origin, end=$destination');
+    
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => BusTripDetailedScreen(
-          id: bus['number'] ?? '',
-          number: bus['number'] ?? '',
-          start: bus['start'] ?? '',
-          end: bus['end'] ?? '',
+          id: busId,
+          number: busNumber,
+          start: origin,
+          end: destination,
         ),
       ),
     );
