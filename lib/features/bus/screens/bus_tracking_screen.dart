@@ -87,7 +87,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   Future<void> _fetchDriverLocation() async {
     try {
       final response = await http.get(
-        Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/1'),
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/1/location'),
         headers: {'accept': '*/*'},
       );
 
