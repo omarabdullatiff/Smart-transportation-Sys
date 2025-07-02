@@ -92,12 +92,12 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   final destinationController = TextEditingController();
   final FocusNode originFocusNode = FocusNode();
   final FocusNode destinationFocusNode = FocusNode();
-  
+
   List<Bus> buses = [];
   List<NearbyBus> nearbyBuses = [];
   List<LocationSuggestion> originSuggestions = [];
   List<LocationSuggestion> destinationSuggestions = [];
-  
+
   bool isLoading = false;
   bool isLoadingNearby = false;
   bool isDetectingLocation = false;
@@ -105,39 +105,29 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   bool isLoadingDestinationSuggestions = false;
   bool showOriginSuggestions = false;
   bool showDestinationSuggestions = false;
-  
+
   String errorMsg = '';
   String nearbyErrorMsg = '';
   String locationErrorMsg = '';
-  
+
   Timer? _originDebounceTimer;
   Timer? _destinationDebounceTimer;
-  
-  // Store selected coordinates
+
   double? originLat, originLng;
   double? destinationLat, destinationLng;
 
   @override
   void initState() {
     super.initState();
-    fetchNearbyBuses();
     _autoDetectLocation();
-    
-    // Add listeners for text changes
     originController.addListener(_onOriginTextChanged);
     destinationController.addListener(_onDestinationTextChanged);
-    
-    // Add focus listeners
+
     originFocusNode.addListener(() {
-      if (!originFocusNode.hasFocus) {
-        setState(() => showOriginSuggestions = false);
-      }
+      if (!originFocusNode.hasFocus) setState(() => showOriginSuggestions = false);
     });
-    
     destinationFocusNode.addListener(() {
-      if (!destinationFocusNode.hasFocus) {
-        setState(() => showDestinationSuggestions = false);
-      }
+      if (!destinationFocusNode.hasFocus) setState(() => showDestinationSuggestions = false);
     });
   }
 
@@ -153,12 +143,11 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   }
 
   void _onOriginTextChanged() {
-    final query = originController.text.trim();
-    if (query.length >= 2) {
+    final q = originController.text.trim();
+    if (q.length >= 2) {
       _originDebounceTimer?.cancel();
-      _originDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-        _searchLocationSuggestions(query, isOrigin: true);
-      });
+      _originDebounceTimer = Timer(
+          const Duration(milliseconds: 500), () => _searchLocationSuggestions(q, isOrigin: true));
     } else {
       setState(() {
         originSuggestions.clear();
@@ -168,12 +157,11 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   }
 
   void _onDestinationTextChanged() {
-    final query = destinationController.text.trim();
-    if (query.length >= 2) {
+    final q = destinationController.text.trim();
+    if (q.length >= 2) {
       _destinationDebounceTimer?.cancel();
-      _destinationDebounceTimer = Timer(const Duration(milliseconds: 500), () {
-        _searchLocationSuggestions(query, isOrigin: false);
-      });
+      _destinationDebounceTimer = Timer(
+          const Duration(milliseconds: 500), () => _searchLocationSuggestions(q, isOrigin: false));
     } else {
       setState(() {
         destinationSuggestions.clear();
@@ -183,33 +171,27 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   }
 
   Future<void> _searchLocationSuggestions(String query, {required bool isOrigin}) async {
-    if (query.length < 2) return;
-
     setState(() {
-      if (isOrigin) {
+      if (isOrigin)
         isLoadingOriginSuggestions = true;
-      } else {
+      else
         isLoadingDestinationSuggestions = true;
-      }
     });
 
     try {
       final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=5&countrycodes=eg&addressdetails=1'
+        'https://nominatim.openstreetmap.org/search'
+            '?q=${Uri.encodeComponent(query)}&format=json&limit=5&countrycodes=eg&addressdetails=1',
       );
-
-      final response = await http.get(
-        url,
-        headers: {
-          'User-Agent': 'SmartTransportApp/1.0',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        final suggestions = data.map((item) => LocationSuggestion.fromJson(item)).toList();
-
-        if (mounted) {
+      final resp = await http.get(url, headers: {'User-Agent': 'SmartTransportApp/1.0'});
+      if (resp.statusCode == 200) {
+        final raw = json.decode(resp.body);
+        if (raw is List) {
+          final casted = raw
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+          final suggestions = casted.map((m) => LocationSuggestion.fromJson(m)).toList();
+          if (!mounted) return;
           setState(() {
             if (isOrigin) {
               originSuggestions = suggestions;
@@ -221,33 +203,31 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
           });
         }
       }
-    } catch (e) {
-      print('Error fetching location suggestions: $e');
+    } catch (_) {
+      // ignore
     } finally {
-      if (mounted) {
-        setState(() {
-          if (isOrigin) {
-            isLoadingOriginSuggestions = false;
-          } else {
-            isLoadingDestinationSuggestions = false;
-          }
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        if (isOrigin)
+          isLoadingOriginSuggestions = false;
+        else
+          isLoadingDestinationSuggestions = false;
+      });
     }
   }
 
-  void _selectLocationSuggestion(LocationSuggestion suggestion, {required bool isOrigin}) {
+  void _selectLocationSuggestion(LocationSuggestion s, {required bool isOrigin}) {
     setState(() {
       if (isOrigin) {
-        originController.text = suggestion.displayName;
-        originLat = suggestion.latitude;
-        originLng = suggestion.longitude;
+        originController.text = s.displayName;
+        originLat = s.latitude;
+        originLng = s.longitude;
         showOriginSuggestions = false;
         originSuggestions.clear();
       } else {
-        destinationController.text = suggestion.displayName;
-        destinationLat = suggestion.latitude;
-        destinationLng = suggestion.longitude;
+        destinationController.text = s.displayName;
+        destinationLat = s.latitude;
+        destinationLng = s.longitude;
         showDestinationSuggestions = false;
         destinationSuggestions.clear();
       }
@@ -259,110 +239,75 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
       isDetectingLocation = true;
       locationErrorMsg = '';
     });
-
     try {
-      final position = await LocationService.getCurrentLocation();
-      if (position != null && mounted) {
-        // Store coordinates
-        originLat = position.latitude;
-        originLng = position.longitude;
-        
-        // Try to get a readable address using reverse geocoding
-        await _reverseGeocode(position.latitude, position.longitude);
+      final pos = await LocationService.getCurrentLocation();
+      if (pos != null && mounted) {
+        originLat = pos.latitude;
+        originLng = pos.longitude;
+        await _reverseGeocode(pos.latitude, pos.longitude);
+        fetchNearbyBuses();
       } else {
-        setState(() {
-          locationErrorMsg = 'Unable to access location. Please enter manually.';
-        });
+        setState(() => locationErrorMsg = 'Unable to access location. Please enter manually.');
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          locationErrorMsg = 'Location access failed: $e';
-        });
-      }
+      if (mounted) setState(() => locationErrorMsg = 'Location access failed: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          isDetectingLocation = false;
-        });
-      }
+      if (mounted) setState(() => isDetectingLocation = false);
     }
   }
 
   Future<void> _reverseGeocode(double lat, double lng) async {
     try {
       final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1'
+        'https://nominatim.openstreetmap.org/reverse'
+            '?lat=$lat&lon=$lng&format=json&addressdetails=1',
       );
-
-      final response = await http.get(
-        url,
-        headers: {
-          'User-Agent': 'SmartTransportApp/1.0',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final displayName = data['display_name'] ?? 'Current Location';
-        
-        if (mounted) {
-          setState(() {
-            originController.text = displayName;
-          });
-        }
+      final resp = await http.get(url, headers: {'User-Agent': 'SmartTransportApp/1.0'});
+      if (resp.statusCode == 200) {
+        final map = Map<String, dynamic>.from(json.decode(resp.body));
+        final name = map['display_name'] ?? 'Current Location';
+        if (mounted) originController.text = name;
       } else {
-        // Fallback to coordinates if reverse geocoding fails
-        if (mounted) {
-          setState(() {
-            originController.text = 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
-          });
-        }
+        if (mounted)
+          originController.text =
+          'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
       }
-    } catch (e) {
-      // Fallback to coordinates if reverse geocoding fails
-      if (mounted) {
-        setState(() {
-          originController.text = 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
-        });
-      }
+    } catch (_) {
+      if (mounted)
+        originController.text =
+        'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
     }
   }
 
-  Future<void> _refreshLocation() async {
-    await _autoDetectLocation();
-  }
+  Future<void> _refreshLocation() async => _autoDetectLocation();
 
   Future<void> fetchBuses() async {
-    final origin = originController.text.trim();
-    final destination = destinationController.text.trim();
-
-    if (origin.isEmpty || destination.isEmpty) {
+    final o = originController.text.trim();
+    final d = destinationController.text.trim();
+    if (o.isEmpty || d.isEmpty) {
       setState(() => errorMsg = 'Please enter both origin and destination.');
       return;
     }
-
     setState(() {
       isLoading = true;
       errorMsg = '';
     });
-
     final url = Uri.parse(
-        'http://smarttrackingapp.runasp.net/api/Bus/GetBusesFromOrginToDestination?origin=$origin&destination=$destination');
-
+      'http://smarttrackingapp.runasp.net/api/Bus/GetBusesFromOrginToDestination'
+          '?origin=$o&destination=$d',
+    );
     try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List) {
-          setState(() {
-            buses = data.map((e) => Bus.fromJson(e)).toList();
-          });
+      final resp = await http.get(url);
+      if (resp.statusCode == 200) {
+        final raw = json.decode(resp.body);
+        if (raw is List) {
+          final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          setState(() => buses = list.map((m) => Bus.fromJson(m)).toList());
         } else {
           setState(() => errorMsg = 'Unexpected data format.');
         }
       } else {
-        setState(() => errorMsg = 'Server error: ${response.statusCode}');
+        setState(() => errorMsg = 'Server error: ${resp.statusCode}');
       }
     } catch (e) {
       setState(() => errorMsg = 'Network error: $e');
@@ -372,35 +317,34 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
   }
 
   Future<void> fetchNearbyBuses() async {
+    if (originLat == null || originLng == null) {
+      setState(() => nearbyErrorMsg = 'Current location not available yet.');
+      return;
+    }
     setState(() {
       isLoadingNearby = true;
       nearbyErrorMsg = '';
     });
-
-    const url = 'http://smarttrackingapp.runasp.net/api/Tracking/nearby?radiusMeters=1000';
-
+    final url = Uri.parse(
+      'http://smarttrackingapp.runasp.net/api/Tracking/nearby'
+          '?radiusMeters=1000&latitude=$originLat&longitude=$originLng',
+    );
     try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'accept': '*/*'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List) {
-          setState(() {
-            nearbyBuses = data.map((e) => NearbyBus.fromJson(e as Map<String, dynamic>)).toList();
-          });
-        } else if (data is Map) {
-          // Single bus response
-          setState(() {
-            nearbyBuses = [NearbyBus.fromJson(data as Map<String, dynamic>)];
-          });
+      final resp = await http.get(url, headers: {'accept': '*/*'});
+      if (resp.statusCode == 200) {
+        final raw = json.decode(resp.body);
+        if (raw is List) {
+          final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          setState(() =>
+          nearbyBuses = list.map((m) => NearbyBus.fromJson(m)).toList());
+        } else if (raw is Map) {
+          final map = Map<String, dynamic>.from(raw);
+          setState(() => nearbyBuses = [NearbyBus.fromJson(map)]);
         } else {
           setState(() => nearbyErrorMsg = 'Unexpected data format.');
         }
       } else {
-        setState(() => nearbyErrorMsg = 'Server error: ${response.statusCode}');
+        setState(() => nearbyErrorMsg = 'Server error: ${resp.statusCode}');
       }
     } catch (e) {
       setState(() => nearbyErrorMsg = 'Network error: $e');
@@ -419,14 +363,9 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
         icon: Icon(Icons.arrow_back_ios_rounded, color: AppColor.primary, size: 20),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: Text(
-        'Select Address',
-        style: TextStyle(
-          color: AppColor.primary,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      title: Text('Select Address',
+          style:
+          TextStyle(color: AppColor.primary, fontSize: 20, fontWeight: FontWeight.w600)),
       centerTitle: true,
     ),
     body: SafeArea(
@@ -447,32 +386,25 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search Results Section
                     if (isLoading)
                       _buildLoadingWidget()
                     else if (buses.isNotEmpty) ...[
                       _buildSectionHeader('Search Results', Icons.search_rounded),
                       const SizedBox(height: 12),
-                      ...buses.map((bus) => _buildBusCard(bus)),
+                      ...buses.map((b) => _buildBusCard(b)),
                       const SizedBox(height: 20),
                     ],
-                    
-                    // Nearby Buses Section
-                    _buildSectionHeader(
-                      'Nearby Buses', 
-                      Icons.near_me_rounded, 
-                      onRefresh: fetchNearbyBuses
-                    ),
+                    _buildSectionHeader('Nearby Buses', Icons.near_me_rounded,
+                        onRefresh: fetchNearbyBuses),
                     const SizedBox(height: 12),
-                    
                     if (isLoadingNearby)
                       _buildLoadingWidget()
                     else if (nearbyErrorMsg.isNotEmpty)
                       _buildErrorMessage(nearbyErrorMsg)
                     else if (nearbyBuses.isEmpty)
-                      _buildEmptyNearbyCard()
-                    else
-                      ...nearbyBuses.map((bus) => _buildNearbyBusCard(bus)),
+                        _buildEmptyNearbyCard()
+                      else
+                        ...nearbyBuses.map((nb) => _buildNearbyBusCard(nb)),
                   ],
                 ),
               ),
@@ -512,17 +444,15 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                 children: [
                   Expanded(
                     child: TextField(
+                      focusNode: originFocusNode,
                       controller: originController,
-                      style: TextStyle(
-                        color: AppColor.text,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: AppColor.text, fontSize: 16),
                       decoration: InputDecoration(
-                        hintText: isDetectingLocation ? 'Detecting location...' : 'Your current location',
+                        hintText: isDetectingLocation
+                            ? 'Detecting location...'
+                            : 'Your current location',
                         hintStyle: TextStyle(
-                          color: AppColor.text.withValues(alpha: 0.6),
-                          fontSize: 16,
-                        ),
+                            color: AppColor.text.withValues(alpha: 0.6), fontSize: 16),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 4),
                       ),
@@ -540,16 +470,10 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                   else
                     IconButton(
                       onPressed: _refreshLocation,
-                      icon: Icon(
-                        Icons.my_location_rounded,
-                        color: AppColor.primary,
-                        size: 18,
-                      ),
+                      icon: Icon(Icons.my_location_rounded, color: AppColor.primary, size: 18),
                       style: IconButton.styleFrom(
                         backgroundColor: AppColor.primary.withValues(alpha: 0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         padding: const EdgeInsets.all(4),
                         minimumSize: const Size(28, 28),
                       ),
@@ -560,37 +484,24 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 14,
-                      color: AppColor.accent,
-                    ),
+                    Icon(Icons.warning_amber_rounded, size: 14, color: AppColor.accent),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(
-                        locationErrorMsg,
-                        style: TextStyle(
-                          color: AppColor.accent,
-                          fontSize: 11,
-                        ),
-                      ),
+                      child: Text(locationErrorMsg,
+                          style: TextStyle(color: AppColor.accent, fontSize: 11)),
                     ),
                   ],
                 ),
               ],
               Divider(height: 1, color: AppColor.accent.withValues(alpha: 0.5)),
               TextField(
+                focusNode: destinationFocusNode,
                 controller: destinationController,
-                style: TextStyle(
-                  color: AppColor.text,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: AppColor.text, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: 'Where to?',
-                  hintStyle: TextStyle(
-                    color: AppColor.text.withValues(alpha: 0.6),
-                    fontSize: 16,
-                  ),
+                  hintStyle:
+                  TextStyle(color: AppColor.text.withValues(alpha: 0.6), fontSize: 16),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 4),
                 ),
@@ -609,24 +520,16 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
       onPressed: fetchBuses,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColor.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.search_rounded, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          const Text(
-            'Search Buses',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        children: const [
+          Icon(Icons.search_rounded, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Text('Search Buses',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     ),
@@ -639,14 +542,8 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
         children: [
           Icon(icon, color: AppColor.primary, size: 20),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColor.primary,
-            ),
-          ),
+          Text(title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColor.primary)),
         ],
       ),
       if (onRefresh != null)
@@ -682,14 +579,9 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
             children: [
               Icon(Icons.directions_bus_rounded, size: 24, color: AppColor.primary),
               const SizedBox(height: 4),
-              Text(
-                '${bus.id}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColor.primary,
-                ),
-              ),
+              Text('${bus.id}',
+                  style:
+                  TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColor.primary)),
             ],
           ),
         ),
@@ -700,55 +592,32 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColor.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  Container(width: 8, height: 8, decoration:
+                  BoxDecoration(color: AppColor.primary, shape: BoxShape.circle)),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      bus.origin,
-                      style: TextStyle(
-                        color: AppColor.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(bus.origin,
+                        style:
+                        TextStyle(color: AppColor.text, fontSize: 14, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis),
                   ),
                 ],
               ),
               Container(
-                width: 1,
-                height: 16,
-                margin: const EdgeInsets.only(left: 4, top: 4, bottom: 4),
-                color: AppColor.accent,
-              ),
+                  width: 1,
+                  height: 16,
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  color: AppColor.accent),
               Row(
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: AppColor.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  Container(width: 8, height: 8, decoration:
+                  BoxDecoration(color: AppColor.primary, shape: BoxShape.circle)),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      bus.destination,
-                      style: TextStyle(
-                        color: AppColor.text,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: Text(bus.destination,
+                        style:
+                        TextStyle(color: AppColor.text, fontSize: 14, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis),
                   ),
                 ],
               ),
@@ -767,78 +636,33 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: AppColor.primary.withValues(alpha: 0.3)),
     ),
-    child: Row(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColor.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              Icon(Icons.directions_bus_rounded, size: 24, color: AppColor.primary),
-              const SizedBox(height: 4),
-              Text(
-                '${bus.busId}',
+        Row(
+          children: [
+            Icon(Icons.directions_bus_rounded, size: 24, color: AppColor.primary),
+            const SizedBox(width: 8),
+            Text('Bus #${bus.busId}',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppColor.primary,
-                ),
-              ),
-            ],
-          ),
+                    fontWeight: FontWeight.w600, fontSize: 16, color: AppColor.primary)),
+          ],
         ),
-        const SizedBox(width: 12),
-        Icon(Icons.near_me_rounded, color: AppColor.primary, size: 16),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nearby Bus',
-                style: TextStyle(
-                  color: AppColor.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 4),
-              if (bus.origin != null && bus.destination != null) ...[
-                Text(
-                  'From: ${bus.origin}',
-                  style: TextStyle(color: AppColor.text, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  'To: ${bus.destination}',
-                  style: TextStyle(color: AppColor.text, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ] else ...[
-                Text(
-                  'Route information not available',
-                  style: TextStyle(
-                    color: AppColor.text.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-              if (bus.driverId != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Driver ID: ${bus.driverId}',
-                  style: TextStyle(
-                    color: AppColor.text.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ],
-          ),
+        const SizedBox(height: 8),
+        Text(
+          bus.origin != null && bus.destination != null
+              ? 'Route: ${bus.origin} → ${bus.destination}'
+              : 'Route information not available',
+          style: TextStyle(color: AppColor.text, fontSize: 14),
         ),
+        const SizedBox(height: 4),
+        Text('Location: (${bus.latitude.toStringAsFixed(4)}, ${bus.longitude.toStringAsFixed(4)})',
+            style: TextStyle(color: AppColor.text.withValues(alpha: 0.7), fontSize: 12)),
+        if (bus.driverId != null) ...[
+          const SizedBox(height: 4),
+          Text('Driver ID: ${bus.driverId}',
+              style: TextStyle(color: AppColor.text.withValues(alpha: 0.7), fontSize: 12)),
+        ],
       ],
     ),
   );
@@ -852,28 +676,14 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
     ),
     child: Column(
       children: [
-        Icon(
-          Icons.location_searching_rounded,
-          size: 40,
-          color: AppColor.text.withValues(alpha: 0.5),
-        ),
+        Icon(Icons.location_searching_rounded,
+            size: 40, color: AppColor.text.withValues(alpha: 0.5)),
         const SizedBox(height: 12),
-        Text(
-          'No nearby buses found',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColor.text,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text('No nearby buses found',
+            style: TextStyle(fontSize: 16, color: AppColor.text, fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
-        Text(
-          'Try refreshing or check back later',
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColor.text.withValues(alpha: 0.7),
-          ),
-        ),
+        Text('Try refreshing or check back later',
+            style: TextStyle(fontSize: 12, color: AppColor.text.withValues(alpha: 0.7))),
       ],
     ),
   );
@@ -889,15 +699,7 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
       children: [
         Icon(Icons.info_outline_rounded, color: AppColor.text, size: 20),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            message,
-            style: TextStyle(
-              color: AppColor.text,
-              fontSize: 14,
-            ),
-          ),
-        ),
+        Expanded(child: Text(message, style: TextStyle(color: AppColor.text, fontSize: 14))),
       ],
     ),
   );
