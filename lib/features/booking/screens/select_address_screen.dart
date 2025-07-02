@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
+import 'package:flutter_application_1/features/bus/screens/location_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class Bus {
   final int id;
@@ -51,6 +54,32 @@ class NearbyBus {
   );
 }
 
+class LocationSuggestion {
+  final String displayName;
+  final double latitude;
+  final double longitude;
+  final String placeId;
+  final String type;
+
+  LocationSuggestion({
+    required this.displayName,
+    required this.latitude,
+    required this.longitude,
+    required this.placeId,
+    required this.type,
+  });
+
+  factory LocationSuggestion.fromJson(Map<String, dynamic> json) {
+    return LocationSuggestion(
+      displayName: json['display_name'] ?? '',
+      latitude: double.tryParse(json['lat'] ?? '0') ?? 0.0,
+      longitude: double.tryParse(json['lon'] ?? '0') ?? 0.0,
+      placeId: json['place_id']?.toString() ?? '',
+      type: json['type'] ?? 'place',
+    );
+  }
+}
+
 class SelectAddressPage extends StatefulWidget {
   const SelectAddressPage({super.key});
 
@@ -61,17 +90,247 @@ class SelectAddressPage extends StatefulWidget {
 class _SelectAddressPageState extends State<SelectAddressPage> {
   final originController = TextEditingController();
   final destinationController = TextEditingController();
+  final FocusNode originFocusNode = FocusNode();
+  final FocusNode destinationFocusNode = FocusNode();
+  
   List<Bus> buses = [];
   List<NearbyBus> nearbyBuses = [];
+  List<LocationSuggestion> originSuggestions = [];
+  List<LocationSuggestion> destinationSuggestions = [];
+  
   bool isLoading = false;
   bool isLoadingNearby = false;
+  bool isDetectingLocation = false;
+  bool isLoadingOriginSuggestions = false;
+  bool isLoadingDestinationSuggestions = false;
+  bool showOriginSuggestions = false;
+  bool showDestinationSuggestions = false;
+  
   String errorMsg = '';
   String nearbyErrorMsg = '';
+  String locationErrorMsg = '';
+  
+  Timer? _originDebounceTimer;
+  Timer? _destinationDebounceTimer;
+  
+  // Store selected coordinates
+  double? originLat, originLng;
+  double? destinationLat, destinationLng;
 
   @override
   void initState() {
     super.initState();
-    fetchNearbyBuses(); // Load nearby buses on page load
+    fetchNearbyBuses();
+    _autoDetectLocation();
+    
+    // Add listeners for text changes
+    originController.addListener(_onOriginTextChanged);
+    destinationController.addListener(_onDestinationTextChanged);
+    
+    // Add focus listeners
+    originFocusNode.addListener(() {
+      if (!originFocusNode.hasFocus) {
+        setState(() => showOriginSuggestions = false);
+      }
+    });
+    
+    destinationFocusNode.addListener(() {
+      if (!destinationFocusNode.hasFocus) {
+        setState(() => showDestinationSuggestions = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _originDebounceTimer?.cancel();
+    _destinationDebounceTimer?.cancel();
+    originController.dispose();
+    destinationController.dispose();
+    originFocusNode.dispose();
+    destinationFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onOriginTextChanged() {
+    final query = originController.text.trim();
+    if (query.length >= 2) {
+      _originDebounceTimer?.cancel();
+      _originDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _searchLocationSuggestions(query, isOrigin: true);
+      });
+    } else {
+      setState(() {
+        originSuggestions.clear();
+        showOriginSuggestions = false;
+      });
+    }
+  }
+
+  void _onDestinationTextChanged() {
+    final query = destinationController.text.trim();
+    if (query.length >= 2) {
+      _destinationDebounceTimer?.cancel();
+      _destinationDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _searchLocationSuggestions(query, isOrigin: false);
+      });
+    } else {
+      setState(() {
+        destinationSuggestions.clear();
+        showDestinationSuggestions = false;
+      });
+    }
+  }
+
+  Future<void> _searchLocationSuggestions(String query, {required bool isOrigin}) async {
+    if (query.length < 2) return;
+
+    setState(() {
+      if (isOrigin) {
+        isLoadingOriginSuggestions = true;
+      } else {
+        isLoadingDestinationSuggestions = true;
+      }
+    });
+
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=5&countrycodes=eg&addressdetails=1'
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'SmartTransportApp/1.0',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final suggestions = data.map((item) => LocationSuggestion.fromJson(item)).toList();
+
+        if (mounted) {
+          setState(() {
+            if (isOrigin) {
+              originSuggestions = suggestions;
+              showOriginSuggestions = originFocusNode.hasFocus && suggestions.isNotEmpty;
+            } else {
+              destinationSuggestions = suggestions;
+              showDestinationSuggestions = destinationFocusNode.hasFocus && suggestions.isNotEmpty;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching location suggestions: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (isOrigin) {
+            isLoadingOriginSuggestions = false;
+          } else {
+            isLoadingDestinationSuggestions = false;
+          }
+        });
+      }
+    }
+  }
+
+  void _selectLocationSuggestion(LocationSuggestion suggestion, {required bool isOrigin}) {
+    setState(() {
+      if (isOrigin) {
+        originController.text = suggestion.displayName;
+        originLat = suggestion.latitude;
+        originLng = suggestion.longitude;
+        showOriginSuggestions = false;
+        originSuggestions.clear();
+      } else {
+        destinationController.text = suggestion.displayName;
+        destinationLat = suggestion.latitude;
+        destinationLng = suggestion.longitude;
+        showDestinationSuggestions = false;
+        destinationSuggestions.clear();
+      }
+    });
+  }
+
+  Future<void> _autoDetectLocation() async {
+    setState(() {
+      isDetectingLocation = true;
+      locationErrorMsg = '';
+    });
+
+    try {
+      final position = await LocationService.getCurrentLocation();
+      if (position != null && mounted) {
+        // Store coordinates
+        originLat = position.latitude;
+        originLng = position.longitude;
+        
+        // Try to get a readable address using reverse geocoding
+        await _reverseGeocode(position.latitude, position.longitude);
+      } else {
+        setState(() {
+          locationErrorMsg = 'Unable to access location. Please enter manually.';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          locationErrorMsg = 'Location access failed: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isDetectingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _reverseGeocode(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1'
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'SmartTransportApp/1.0',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final displayName = data['display_name'] ?? 'Current Location';
+        
+        if (mounted) {
+          setState(() {
+            originController.text = displayName;
+          });
+        }
+      } else {
+        // Fallback to coordinates if reverse geocoding fails
+        if (mounted) {
+          setState(() {
+            originController.text = 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+          });
+        }
+      }
+    } catch (e) {
+      // Fallback to coordinates if reverse geocoding fails
+      if (mounted) {
+        setState(() {
+          originController.text = 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshLocation() async {
+    await _autoDetectLocation();
   }
 
   Future<void> fetchBuses() async {
@@ -249,22 +508,76 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
         Expanded(
           child: Column(
             children: [
-              TextField(
-                controller: originController,
-                style: TextStyle(
-                  color: AppColor.text,
-                  fontSize: 16,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Your current location',
-                  hintStyle: TextStyle(
-                    color: AppColor.text.withValues(alpha: 0.6),
-                    fontSize: 16,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: originController,
+                      style: TextStyle(
+                        color: AppColor.text,
+                        fontSize: 16,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: isDetectingLocation ? 'Detecting location...' : 'Your current location',
+                        hintStyle: TextStyle(
+                          color: AppColor.text.withValues(alpha: 0.6),
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      ),
+                    ),
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                ),
+                  if (isDetectingLocation)
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColor.primary),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      onPressed: _refreshLocation,
+                      icon: Icon(
+                        Icons.my_location_rounded,
+                        color: AppColor.primary,
+                        size: 18,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColor.primary.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        minimumSize: const Size(28, 28),
+                      ),
+                    ),
+                ],
               ),
+              if (locationErrorMsg.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 14,
+                      color: AppColor.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        locationErrorMsg,
+                        style: TextStyle(
+                          color: AppColor.accent,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               Divider(height: 1, color: AppColor.accent.withValues(alpha: 0.5)),
               TextField(
                 controller: destinationController,
@@ -288,8 +601,6 @@ class _SelectAddressPageState extends State<SelectAddressPage> {
       ],
     ),
   );
-
-
 
   Widget _buildSearchButton() => SizedBox(
     width: double.infinity,
