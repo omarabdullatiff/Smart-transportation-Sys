@@ -13,12 +13,14 @@ class LocationService {
       }
     }
 
-    // نأخذ أول موقع يتم بثه فقط (قراءة واحدة)
-    return await Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
-      ),
-    ).first;
+    // Use faster one-time read method instead of stream
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
+        timeLimit: Duration(seconds: 4),
+      );
+    } catch (e) {
+      return null;
+    }
   }
 }
