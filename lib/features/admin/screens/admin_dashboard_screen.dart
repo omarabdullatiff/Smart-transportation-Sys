@@ -53,10 +53,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
+        
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -394,6 +391,41 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
                 ),
               ),
               const PopupMenuItem(
+                value: 'assignTrip',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.route, size: 18),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Assign to Trip',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'unassignTrip',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.route_outlined, size: 18, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Unassign from Trip',
+                        style: TextStyle(color: Colors.orange),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'unassign',
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -446,6 +478,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         break;
       case 'assign':
         _showDriverSelectionDialog(bus);
+        break;
+      case 'assignTrip':
+        _showAssignBusToTripDialog(bus);
+        break;
+      case 'unassignTrip':
+        _showUnassignBusFromTripDialog(bus);
         break;
       case 'unassign':
         _showUnassignDriverConfirmation(bus);
@@ -1543,6 +1581,231 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       context: context,
       builder: (context) => DriverSelectionDialog(
         bus: bus,
+      ),
+    );
+  }
+
+  void _showAssignBusToTripDialog(Bus bus) {
+    final tripIdController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+
+          return AlertDialog(
+            title: Text('Assign Bus ${bus.licensePlate} to Trip'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Enter the Trip ID to assign this bus to:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    controller: tripIdController,
+                    label: 'Trip ID',
+                    hint: 'Enter trip ID (e.g., 205)',
+                    keyboardType: TextInputType.number,
+                    prefixIcon: Icons.route,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  // Validate input
+                  if (tripIdController.text.trim().isEmpty) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please enter a trip ID',
+                    );
+                    return;
+                  }
+
+                  final tripId = int.tryParse(tripIdController.text.trim());
+                  if (tripId == null || tripId <= 0) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please enter a valid trip ID',
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    isLoading = true;
+                  });
+
+                  try {
+                    // Call the API to assign bus to trip
+                    final success = await ref.read(busesProvider.notifier).assignBusToTrip(
+                      tripId,
+                      bus.id,
+                    );
+
+                    if (success && mounted) {
+                      Navigator.pop(context);
+                      CustomSnackBar.showSuccess(
+                        context: context,
+                        message: 'Bus ${bus.licensePlate} assigned to Trip $tripId successfully! Refreshing list...',
+                      );
+                    }
+                  } catch (e) {
+                    setState(() {
+                      isLoading = false;
+                    });
+                    
+                    if (mounted) {
+                      CustomSnackBar.showError(
+                        context: context,
+                        message: 'Failed to assign bus to trip: ${e.toString()}',
+                      );
+                    }
+                  }
+                },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Assign to Trip'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showUnassignBusFromTripDialog(Bus bus) {
+    final tripIdController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isLoading = false;
+
+          return AlertDialog(
+            title: Text('Unassign Bus ${bus.licensePlate} from Trip'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Enter the Trip ID to unassign this bus from:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    controller: tripIdController,
+                    label: 'Trip ID',
+                    hint: 'Enter trip ID (e.g., 205)',
+                    keyboardType: TextInputType.number,
+                    prefixIcon: Icons.route_outlined,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  // Validate input
+                  if (tripIdController.text.trim().isEmpty) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please enter a trip ID',
+                    );
+                    return;
+                  }
+
+                  final tripId = int.tryParse(tripIdController.text.trim());
+                  if (tripId == null || tripId <= 0) {
+                    CustomSnackBar.showError(
+                      context: context,
+                      message: 'Please enter a valid trip ID',
+                    );
+                    return;
+                  }
+
+                  setState(() {
+                    isLoading = true;
+                  });
+
+                  try {
+                    // Call the API to unassign bus from trip
+                    final success = await ref.read(busesProvider.notifier).unassignBusFromTrip(
+                      tripId,
+                      bus.id,
+                    );
+
+                    if (success && mounted) {
+                      Navigator.pop(context);
+                      CustomSnackBar.showSuccess(
+                        context: context,
+                        message: 'Bus ${bus.licensePlate} unassigned from Trip $tripId successfully! Refreshing list...',
+                      );
+                    }
+                  } catch (e) {
+                    setState(() {
+                      isLoading = false;
+                    });
+                    
+                    if (mounted) {
+                      CustomSnackBar.showError(
+                        context: context,
+                        message: 'Failed to unassign bus from trip: ${e.toString()}',
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Unassign from Trip',
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

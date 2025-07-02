@@ -268,6 +268,45 @@ class AdminApiService {
     }
   }
 
+  static Future<bool> assignBusToTrip(int tripId, int busId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/BusTrip/$tripId/assign-bus/$busId'),
+        headers: {
+          'accept': '*/*',
+        },
+        body: '',
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+        return true; // Successfully assigned
+      } else {
+        throw Exception('Failed to assign bus to trip: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error assigning bus to trip: $e');
+    }
+  }
+
+  static Future<bool> unassignBusFromTrip(int tripId, int busId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_baseUrl/BusTrip/$tripId/unassign-bus/$busId'),
+        headers: {
+          'accept': '*/*',
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true; // Successfully unassigned
+      } else {
+        throw Exception('Failed to unassign bus from trip: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error unassigning bus from trip: $e');
+    }
+  }
+
   static Future<bool> deleteBus(int busId) async {
     try {
       final response = await http.delete(

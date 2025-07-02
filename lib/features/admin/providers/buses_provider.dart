@@ -89,6 +89,56 @@ class BusesNotifier extends AsyncNotifier<List<Bus>> {
     }
   }
 
+  Future<bool> assignBusToTrip(int tripId, int busId) async {
+    try {
+      // Assign the bus to trip via API
+      final success = await AdminApiService.assignBusToTrip(tripId, busId);
+      
+      if (success) {
+        // Force refresh the list to show the updated bus assignments
+        // This ensures the UI reflects the changes immediately
+        state = const AsyncLoading();
+        try {
+          final updatedBuses = await AdminApiService.getAllBuses();
+          state = AsyncData(updatedBuses);
+        } catch (e) {
+          // If refresh fails, set error state
+          state = AsyncError('Failed to refresh buses list: $e', StackTrace.current);
+        }
+      }
+      
+      return success;
+    } catch (e) {
+      // If there's an error, re-throw it so the UI can handle it
+      throw Exception('Failed to assign bus to trip: $e');
+    }
+  }
+
+  Future<bool> unassignBusFromTrip(int tripId, int busId) async {
+    try {
+      // Unassign the bus from trip via API
+      final success = await AdminApiService.unassignBusFromTrip(tripId, busId);
+      
+      if (success) {
+        // Force refresh the list to show the updated bus assignments
+        // This ensures the UI reflects the changes immediately
+        state = const AsyncLoading();
+        try {
+          final updatedBuses = await AdminApiService.getAllBuses();
+          state = AsyncData(updatedBuses);
+        } catch (e) {
+          // If refresh fails, set error state
+          state = AsyncError('Failed to refresh buses list: $e', StackTrace.current);
+        }
+      }
+      
+      return success;
+    } catch (e) {
+      // If there's an error, re-throw it so the UI can handle it
+      throw Exception('Failed to unassign bus from trip: $e');
+    }
+  }
+
   Future<bool> deleteBus(int busId) async {
     try {
       // Delete the bus via API
