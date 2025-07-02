@@ -32,10 +32,12 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   LatLng? _currentDriverLocation;
   bool _isTrackingActive = false;
   DateTime? _lastLocationUpdate;
+  String? _selectedBusId; // For tracking selected nearby buses
 
   // for device location & nearby buses
   LatLng? _currentDeviceLocation;
   List<Marker> _nearbyBusMarkers = [];
+  List<Map<String, dynamic>> _nearbyBusesData = [];
 
   static const Duration updateInterval = Duration(seconds: 10);
   final LatLng _defaultCenter = const LatLng(30.033333, 31.233334); // Cairo
@@ -53,8 +55,12 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
     // every 10s: update device location, nearby buses, and bus location if tracking
     _locationTimer = Timer.periodic(updateInterval, (_) {
-      if (_isTrackingActive && widget.busId != null) {
-        _fetchDriverLocation();
+      if (_isTrackingActive) {
+        if (widget.busId != null) {
+          _fetchDriverLocation();
+        } else if (_selectedBusId != null) {
+          _fetchSelectedBusLocation(_selectedBusId!);
+        }
       }
       _refreshDeviceAndNearby();
     });
@@ -102,20 +108,53 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
       if (resp.statusCode == 200) {
         final List<dynamic> buses = json.decode(resp.body);
-        final markers = buses.map((bus) {
+        
+        // Store bus data for popup usage - using actual API structure
+        final busesData = buses.map((bus) => {
+          'busId': bus['busId'] ?? 0,
+          'latitude': (bus['latitude'] ?? 0.0).toDouble(),
+          'longitude': (bus['longitude'] ?? 0.0).toDouble(),
+          'origin': bus['origin']?.toString() ?? 'Unknown Origin',
+          'destination': bus['destination']?.toString() ?? 'Unknown Destination',
+          'capacity': 40, // Static capacity as not provided in API
+          'driverId': bus['driverId'],
+        }).where((bus) => 
+          // Filter out buses with invalid coordinates (0,0)
+          bus['latitude'] != 0.0 || bus['longitude'] != 0.0
+        ).toList();
+        
+        final markers = busesData.map((bus) {
           return Marker(
             point: LatLng(bus['latitude'], bus['longitude']),
             width: 40,
             height: 40,
-            child: const Icon(
-              Icons.directions_bus,
-              size: 28,
-              color: Colors.blue,
+            child: GestureDetector(
+              onTap: () => _showBusInfoPopup(bus),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.directions_bus,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
             ),
           );
         }).toList();
 
         setState(() {
+          _nearbyBusesData = busesData;
           _nearbyBusMarkers = markers;
         });
       }
@@ -202,6 +241,223 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     }
   }
 
+  // —— NEARBY BUS POPUP ——
+  void _showBusInfoPopup(Map<String, dynamic> busData) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.directions_bus,
+                  color: Colors.blue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Bus ${busData['busId']}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow(
+                icon: Icons.location_on,
+                label: 'From',
+                value: busData['origin'],
+                color: Colors.green,
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                icon: Icons.flag,
+                label: 'To',
+                value: busData['destination'],
+                color: Colors.red,
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                icon: Icons.people,
+                label: 'Capacity',
+                value: '${busData['capacity']} passengers',
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                icon: Icons.person,
+                label: 'Driver',
+                value: busData['driverId'] != null 
+                  ? 'Driver ID: ${busData['driverId']}'
+                  : 'Not assigned',
+                color: busData['driverId'] != null ? Colors.green : Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        busData['driverId'] != null 
+                          ? 'This bus is active and nearby your location'
+                          : 'This bus is nearby but no driver assigned',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _startTrackingSelectedBus(busData);
+              },
+              icon: const Icon(Icons.gps_fixed, size: 18),
+              label: const Text('Track This Bus'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _startTrackingSelectedBus(Map<String, dynamic> busData) {
+    setState(() {
+      _isTrackingActive = true;
+      _routePoints.clear();
+      _currentDriverLocation = null;
+      _selectedBusId = busData['busId'].toString(); // Store selected bus ID
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Started tracking Bus ${_selectedBusId}'),
+        backgroundColor: Colors.green,
+        action: SnackBarAction(
+          label: 'Stop',
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              _isTrackingActive = false;
+              _routePoints.clear();
+              _currentDriverLocation = null;
+              _selectedBusId = null;
+            });
+          },
+        ),
+      ),
+    );
+
+    // Start fetching location for the selected bus
+    _fetchSelectedBusLocation(_selectedBusId!);
+  }
+
+  Future<void> _fetchSelectedBusLocation(String busId) async {
+    try {
+      final resp = await http.get(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/$busId/location'),
+        headers: {'accept': '*/*'},
+      );
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body);
+        final newLoc = LatLng(
+          (data['latitude'] as num).toDouble(),
+          (data['longitude'] as num).toDouble(),
+        );
+        
+        setState(() {
+          _currentDriverLocation = newLoc;
+          _routePoints.add(newLoc);
+          _lastLocationUpdate = DateTime.now();
+        });
+        _mapController.move(newLoc, 16.0);
+      } else {
+        debugPrint('Fetch selected bus failed: ${resp.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching selected bus: $e');
+    }
+  }
+
   // —— USER DATA ——
   Future<void> _fetchUserData() async {
     try {
@@ -259,8 +515,12 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         title: Row(
           children: [
             Text(
-              widget.busId != null && _isTrackingActive
-                ? 'Tracking Bus ${widget.busId}'
+              _isTrackingActive
+                ? (widget.busId != null 
+                    ? 'Tracking Bus ${widget.busId}'
+                    : _selectedBusId != null
+                      ? 'Tracking Bus $_selectedBusId'
+                      : 'My Location')
                 : 'My Location',
               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
@@ -269,7 +529,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _isTrackingActive && widget.busId != null 
+                color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                   ? Colors.green 
                   : Colors.blue,
                 borderRadius: BorderRadius.circular(12),
@@ -278,7 +538,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _isTrackingActive && widget.busId != null 
+                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? Icons.gps_fixed 
                       : Icons.my_location,
                     size: 14,
@@ -286,7 +546,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _isTrackingActive && widget.busId != null 
+                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? 'TRACKING' 
                       : 'GPS',
                     style: const TextStyle(
@@ -326,16 +586,16 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: (_isTrackingActive && widget.busId != null 
+                    color: (_isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? Colors.green 
                       : Colors.blue).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isTrackingActive && widget.busId != null 
+                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? Icons.directions_bus 
                       : Icons.my_location,
-                    color: _isTrackingActive && widget.busId != null 
+                    color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? Colors.green 
                       : Colors.blue,
                     size: 24,
@@ -347,8 +607,12 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isTrackingActive && widget.busId != null
-                          ? 'Bus ${widget.busId}'
+                        _isTrackingActive
+                          ? (widget.busId != null 
+                              ? 'Bus ${widget.busId}'
+                              : _selectedBusId != null
+                                ? 'Bus $_selectedBusId'
+                                : 'Your Location')
                           : 'Your Location',
                         style: const TextStyle(
                           fontSize: 18,
@@ -360,22 +624,22 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Row(
                         children: [
                           Icon(
-                            _isTrackingActive && widget.busId != null 
+                            _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                               ? Icons.gps_fixed 
                               : Icons.location_on,
                             size: 16,
-                            color: _isTrackingActive && widget.busId != null 
+                            color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                               ? Colors.green 
                               : Colors.blue,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _isTrackingActive && widget.busId != null 
+                            _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                               ? 'Live Tracking' 
                               : 'GPS Location',
                             style: TextStyle(
                               fontSize: 14,
-                              color: _isTrackingActive && widget.busId != null 
+                              color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                                 ? Colors.green 
                                 : Colors.blue,
                               fontWeight: FontWeight.w500,
@@ -389,13 +653,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _isTrackingActive && widget.busId != null 
+                    color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? Colors.green 
                       : Colors.blue,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _isTrackingActive && widget.busId != null 
+                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
                       ? 'TRACKING' 
                       : 'ACTIVE',
                     style: const TextStyle(
@@ -414,7 +678,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                initialCenter: (_isTrackingActive && widget.busId != null && _currentDriverLocation != null)
+                initialCenter: (_isTrackingActive && (widget.busId != null || _selectedBusId != null) && _currentDriverLocation != null)
                     ? _currentDriverLocation!
                     : _currentDeviceLocation ?? _defaultCenter,
                 initialZoom: 15.0,
@@ -487,13 +751,14 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
               children: [
 
                 // Exit tracking button - only show when tracking a specific bus
-                if (widget.busId != null && _isTrackingActive) ...[
+                if ((widget.busId != null || _selectedBusId != null) && _isTrackingActive) ...[
                   ElevatedButton.icon(
                     onPressed: () {
                       setState(() {
                         _isTrackingActive = false;
                         _routePoints.clear();
                         _currentDriverLocation = null;
+                        _selectedBusId = null; // Clear selected bus ID
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -520,7 +785,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 ],
 
                 // Center on location button when in GPS mode
-                if (widget.busId == null || !_isTrackingActive) ...[
+                if ((widget.busId == null && _selectedBusId == null) || !_isTrackingActive) ...[
                   ElevatedButton.icon(
                     onPressed: () {
                       if (_currentDeviceLocation != null) {
