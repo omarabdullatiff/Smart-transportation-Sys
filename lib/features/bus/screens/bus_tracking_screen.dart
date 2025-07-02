@@ -25,6 +25,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   List<LatLng> _routePoints = [];
   LatLng? _currentDriverLocation;
+  List<Marker> _nearbyBusMarkers = [];
 
   final LatLng _defaultCenter = const LatLng(30.033333, 31.233334); // Cairo
 
@@ -34,7 +35,6 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
     _fetchUserData();
     _loadDeviceLocation();
 
-    // Start periodic location refresh every 10 seconds
     _locationTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       _refreshDriverLocation();
     });
@@ -60,13 +60,65 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   Future<void> _refreshDriverLocation() async {
     final position = await LocationService.getCurrentLocation();
-    if (position != null) {
-      final newLocation = LatLng(position.latitude, position.longitude);
-      setState(() {
-        _currentDriverLocation = newLocation;
-        _routePoints.add(newLocation);
-      });
-      _mapController.move(newLocation, _mapController.camera.zoom);
+    if (position == null) return;
+
+    final newLocation = LatLng(position.latitude, position.longitude);
+
+    // Only update UI if position changed significantly ( > 5 meters)
+    if (_currentDriverLocation != null) {
+      final distance = Geolocator.distanceBetween(
+        _currentDriverLocation!.latitude,
+        _currentDriverLocation!.longitude,
+        newLocation.latitude,
+        newLocation.longitude,
+      );
+
+      if (distance < 5) return;
+    }
+
+    setState(() {
+      _currentDriverLocation = newLocation;
+      _routePoints.add(newLocation);
+    });
+
+    _mapController.move(newLocation, _mapController.camera.zoom);
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'http://smarttrackingapp.runasp.net/api/Tracking/nearby?radiusMeters=1000'
+              '&latitude=${position.latitude}&longitude=${position.longitude}',
+        ),
+        headers: {
+          'accept': '*/*',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> buses = json.decode(response.body);
+
+        List<Marker> newBusMarkers = buses.map((bus) {
+          final lat = bus['latitude'];
+          final lng = bus['longitude'];
+
+          return Marker(
+            point: LatLng(lat, lng),
+            width: 40,
+            height: 40,
+            child: const Icon(
+              Icons.directions_bus,
+              size: 28,
+              color: Colors.blue,
+            ),
+          );
+        }).toList();
+
+        setState(() {
+          _nearbyBusMarkers = newBusMarkers;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching nearby buses: $e');
     }
   }
 
@@ -146,7 +198,6 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
           ],
         ),
       ),
-
       drawer: Drawer(
         child: Container(
           decoration: BoxDecoration(
@@ -284,7 +335,6 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
           ),
         ),
       ),
-
       body: Column(
         children: [
           Expanded(
@@ -328,6 +378,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                               ),
                             ),
                           ),
+                          ..._nearbyBusMarkers,
                         ],
                       ),
                   ],
@@ -335,8 +386,6 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
               ],
             ),
           ),
-
-          // Bottom buttons
           Container(
             padding: const EdgeInsets.all(16),
             child: Row(
