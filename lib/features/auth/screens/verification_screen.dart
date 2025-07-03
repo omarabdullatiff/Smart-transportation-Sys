@@ -20,10 +20,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
   String? email;
 
   Future<void> _verifyCode() async {
-    if (currentText.length != 4 || email == null) {
+    if (currentText.length != 6 || email == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter the 4-digit code.'),
+          content: Text('Please enter the 6-digit code.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -110,7 +110,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: PinCodeTextField(
                   appContext: context,
-                  length: 4,
+                  length: 6,
                   obscureText: false,
                   animationType: AnimationType.fade,
                   pinTheme: PinTheme(

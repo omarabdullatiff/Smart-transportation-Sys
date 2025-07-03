@@ -39,7 +39,6 @@ class _LoginState extends State<Login> {
     });
   }
 
-  // Function to handle normal email/password login
   Future<void> _loginUser() async {
     final email = _inputController.text.trim();
     final password = _passwordController.text.trim();
@@ -59,93 +58,69 @@ class _LoginState extends State<Login> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Check if admin login
-      if (email == 'omar@admin.com') {
-        // For admin, just check if password is not empty (you can add more validation)
-        if (password.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isLoggedIn', true);
-          await prefs.setString('auth_token', 'admin_token_placeholder');
-          await prefs.setString('user_type', 'admin');
+      // 1) send login request
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
+      final body = jsonEncode({"email": email, "password": password});
+      final response = await http.post(url, headers: _headers, body: body);
 
-          CustomSnackBar.showSuccess(
-            context: context,
-            message: "Admin login successful",
-          );
-          if (mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, AppRoutes.adminDashboard, (route) => false);
-          }
-          return;
-        } else {
-          CustomSnackBar.showError(
-            context: context,
-            message: "Password is required",
-          );
-          return;
-        }
-      }
-      if (email == 'omar1@driver.com') {
-        // For admin, just check if password is not empty (you can add more validation)
-        if (password.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isLoggedIn', true);
-          await prefs.setString('auth_token', 'driver_token_placeholder');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final String token = data['token'];
+        final List<dynamic> roles = data['roles'] ?? [];
+
+        // store token & role
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('auth_token', token);
+
+        // decide navigation based on roles
+        if (roles.contains('Driver')) {
           await prefs.setString('user_type', 'driver');
-
           CustomSnackBar.showSuccess(
             context: context,
             message: "Driver login successful",
           );
           if (mounted) {
             Navigator.pushNamedAndRemoveUntil(
-                context, AppRoutes.driver, (route) => false);
+              context,
+              AppRoutes.driver,
+                  (route) => false,
+            );
           }
-          return;
-        } else {
-          CustomSnackBar.showError(
+        } else if (roles.contains('Admin')) {
+          await prefs.setString('user_type', 'admin');
+          CustomSnackBar.showSuccess(
             context: context,
-            message: "Password is required",
+            message: "Admin login successful",
           );
-          return;
-        }
-      }
-
-      // Regular user login with API
-      final url =
-          Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
-      final body = jsonEncode({"email": email, "password": password});
-
-      final response = await http.post(url, headers: _headers, body: body);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final String token =
-            data['token']; // Assuming the API returns a token in the response
-
-        // Store token and login status in SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('auth_token', token);
-        await prefs.setString('user_type', 'user');
-
-        CustomSnackBar.showSuccess(
-          context: context,
-          message: "Login successful",
-        );
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.newMap, (route) => false);
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminDashboard,
+                  (route) => false,
+            );
+          }
+        } else {
+          await prefs.setString('user_type', 'user');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Login successful",
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.newMap,
+                  (route) => false,
+            );
+          }
         }
       } else {
         CustomSnackBar.showError(
           context: context,
-          message: "Login Failed: Wrong Email OR Password",
+          message: "Login Failed: Wrong Email or Password",
         );
       }
     } catch (error) {
@@ -154,21 +129,13 @@ class _LoginState extends State<Login> {
         message: "Error during login: $error",
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Function to handle Google login
   Future<void> _handleGoogleLogin() async {
     final googleSignIn = GoogleSignIn();
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final account = await googleSignIn.signIn();
@@ -190,32 +157,64 @@ class _LoginState extends State<Login> {
         return;
       }
 
-      final url = Uri.parse(
-          'http://smarttrackingapp.runasp.net/api/Account/google-login');
+      // 1) Google-login request
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/google-login');
       final response = await http.post(
         url,
         headers: _headers,
-        body: jsonEncode({'idToken': idToken}), // Send the ID token
+        body: jsonEncode({'idToken': idToken}),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final String token =
-            data['token']; // Assuming 'token' is in the response
+        final String token = data['token'];
+        final List<dynamic> roles = data['roles'] ?? [];
 
-        // Store token and login status in SharedPreferences
+        // store token & role
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
-        await prefs.setString('user_type', 'user');
 
-        CustomSnackBar.showSuccess(
-          context: context,
-          message: "Google login successful",
-        );
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.newMap, (route) => false);
+        // decide navigation based on roles
+        if (roles.contains('Driver')) {
+          await prefs.setString('user_type', 'driver');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Driver login successful",
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.driver,
+                  (route) => false,
+            );
+          }
+        } else if (roles.contains('Admin')) {
+          await prefs.setString('user_type', 'admin');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Admin login successful",
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminDashboard,
+                  (route) => false,
+            );
+          }
+        } else {
+          await prefs.setString('user_type', 'user');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Google login successful",
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.newMap,
+                  (route) => false,
+            );
+          }
         }
       } else {
         CustomSnackBar.showError(
@@ -229,11 +228,7 @@ class _LoginState extends State<Login> {
         message: "Google sign-in error: $error",
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -250,7 +245,7 @@ class _LoginState extends State<Login> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.7),
+            color: Colors.grey.withAlpha(70),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -264,13 +259,8 @@ class _LoginState extends State<Login> {
         decoration: InputDecoration(
           labelText: labelText,
           hintText: hintText,
-          labelStyle: const TextStyle(
-            color: Colors.grey,
-            fontSize: 16,
-          ),
-          hintStyle: TextStyle(
-            color: Colors.grey.shade400,
-          ),
+          labelStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+          hintStyle: TextStyle(color: Colors.grey.shade400),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
@@ -279,18 +269,7 @@ class _LoginState extends State<Login> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: AppColor.primary,
-              width: 2,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: AppColor.primary, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
             vertical: 16,
@@ -298,12 +277,12 @@ class _LoginState extends State<Login> {
           ),
           suffixIcon: isPassword
               ? IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: _togglePasswordVisibility,
-                )
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+            ),
+            onPressed: _togglePasswordVisibility,
+          )
               : null,
         ),
       ),
@@ -332,10 +311,7 @@ class _LoginState extends State<Login> {
               ),
               const Text(
                 "Welcome back you've been missed!",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.grey),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 1),
@@ -374,8 +350,7 @@ class _LoginState extends State<Login> {
                   Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('OR',
-                        style: TextStyle(fontSize: 16, color: Colors.grey)),
+                    child: Text('OR', style: TextStyle(fontSize: 16, color: Colors.grey)),
                   ),
                   Expanded(child: Divider(color: Colors.grey, thickness: 1)),
                 ],
@@ -388,8 +363,7 @@ class _LoginState extends State<Login> {
                     onPressed: _isLoading ? null : _handleGoogleLogin,
                     icon: Opacity(
                       opacity: _isLoading ? 0.5 : 1.0,
-                      child: Image.asset('lib/image/g_logo.png',
-                          width: 40, height: 40),
+                      child: Image.asset('lib/image/g_logo.png', width: 40, height: 40),
                     ),
                   ),
                 ],
