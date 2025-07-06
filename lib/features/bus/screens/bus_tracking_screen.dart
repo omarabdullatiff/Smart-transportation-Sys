@@ -4,15 +4,17 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_application_1/core/constants/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
+
 import 'package:flutter_application_1/features/bus/screens/location_service.dart';
+import 'package:flutter_application_1/features/bus/services/route_service.dart';
 import 'dart:convert';
 import 'dart:async';
 
 class BusTrackingScreen extends StatefulWidget {
   final String? busId;
+  final bool showRouteOnStart;
   
-  const BusTrackingScreen({super.key, this.busId});
+  const BusTrackingScreen({super.key, this.busId, this.showRouteOnStart = false});
 
   @override
   State<BusTrackingScreen> createState() => _BusTrackingScreenState();
@@ -39,6 +41,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
   List<Marker> _nearbyBusMarkers = [];
   List<Map<String, dynamic>> _nearbyBusesData = [];
 
+  // for route visualization
+  List<LatLng> _busRoutePoints = [];
+  Marker? _originMarker;
+  Marker? _destinationMarker;
+  bool _isLoadingRoute = false;
+  bool _showRouteMode = false;
+
   static const Duration updateInterval = Duration(seconds: 10);
   final LatLng _defaultCenter = const LatLng(30.033333, 31.233334); // Cairo
 
@@ -53,13 +62,22 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       _startAutomaticTracking();
     }
 
+    // Show route on start if requested
+    if (widget.showRouteOnStart && widget.busId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showBusRoute(int.tryParse(widget.busId!) ?? 1);
+      });
+    }
+
     // every 10s: update device location, nearby buses, and bus location if tracking
     _locationTimer = Timer.periodic(updateInterval, (_) {
       if (_isTrackingActive) {
-        if (widget.busId != null) {
-          _fetchDriverLocation();
-        } else if (_selectedBusId != null) {
+        if (_selectedBusId != null) {
+          // Prioritize manually selected bus from nearby buses
           _fetchSelectedBusLocation(_selectedBusId!);
+        } else if (widget.busId != null) {
+          // Use bus ID from navigation (from bus details page)
+          _fetchDriverLocation();
         }
       }
       _refreshDeviceAndNearby();
@@ -209,8 +227,13 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
 
   Future<void> _fetchDriverLocation() async {
     try {
-      // Use the provided busId or fall back to hardcoded ID 1
-      final trackingId = widget.busId ?? '1';
+      // Only proceed if we have a valid busId
+      final trackingId = widget.busId;
+      if (trackingId == null) {
+        debugPrint('No busId provided for tracking');
+        return;
+      }
+      
       final resp = await http.get(
         Uri.parse('http://smarttrackingapp.runasp.net/api/Tracking/$trackingId/location'),
         headers: {'accept': '*/*'},
@@ -238,6 +261,195 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
       }
     } catch (e) {
       debugPrint('Error fetching driver: $e');
+    }
+  }
+
+  // —— ROUTE VISUALIZATION ——
+  Future<void> _showAllBusRoutes() async {
+    final busId = widget.busId != null ? int.tryParse(widget.busId!) ?? 1 : 1;
+    await _showBusRoute(busId);
+  }
+
+  Future<void> _showBusRoute(int busId) async {
+    setState(() {
+      _isLoadingRoute = true;
+      _showRouteMode = true;
+    });
+
+    try {
+      final routeInfo = await RouteService.fetchCompleteRouteInfo(busId);
+      
+      if (routeInfo != null) {
+        _displayRoute(routeInfo);
+        
+        // Center map to show the entire route
+        _centerMapOnRoute(routeInfo.routePoints);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Route loaded: ${routeInfo.coordinates.originName} → ${routeInfo.coordinates.destinationName}'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'Clear',
+              textColor: Colors.white,
+              onPressed: _clearRoute,
+            ),
+          ),
+        );
+      } else {
+        throw Exception('Failed to load route information');
+      }
+    } catch (e) {
+      debugPrint('Error loading route: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load route: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingRoute = false;
+      });
+    }
+  }
+
+  void _displayRoute(BusRouteInfo routeInfo) {
+    setState(() {
+      _busRoutePoints = routeInfo.routePoints;
+      
+      // Create origin marker
+      _originMarker = Marker(
+        point: routeInfo.coordinates.originLatLng,
+        width: 80,
+        height: 80,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                routeInfo.coordinates.originName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      // Create destination marker
+      _destinationMarker = Marker(
+        point: routeInfo.coordinates.destinationLatLng,
+        width: 80,
+        height: 80,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                routeInfo.coordinates.destinationName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.location_on,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _centerMapOnRoute(List<LatLng> routePoints) {
+    if (routePoints.isEmpty) return;
+
+    double minLat = routePoints.first.latitude;
+    double maxLat = routePoints.first.latitude;
+    double minLng = routePoints.first.longitude;
+    double maxLng = routePoints.first.longitude;
+
+    for (final point in routePoints) {
+      minLat = minLat < point.latitude ? minLat : point.latitude;
+      maxLat = maxLat > point.latitude ? maxLat : point.latitude;
+      minLng = minLng < point.longitude ? minLng : point.longitude;
+      maxLng = maxLng > point.longitude ? maxLng : point.longitude;
+    }
+
+    final center = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+    final bounds = LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng));
+    
+    _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+  }
+
+  void _clearRoute() {
+    setState(() {
+      _busRoutePoints.clear();
+      _originMarker = null;
+      _destinationMarker = null;
+      _showRouteMode = false;
+    });
+    
+    // Return to user location
+    if (_currentDeviceLocation != null) {
+      _mapController.move(_currentDeviceLocation!, 15.0);
     }
   }
 
@@ -515,13 +727,15 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
         title: Row(
           children: [
             Text(
-              _isTrackingActive
-                ? (widget.busId != null 
-                    ? 'Tracking Bus ${widget.busId}'
-                    : _selectedBusId != null
-                      ? 'Tracking Bus $_selectedBusId'
-                      : 'My Location')
-                : 'My Location',
+              _showRouteMode
+                ? 'Bus Route View'
+                : _isTrackingActive
+                  ? (widget.busId != null 
+                      ? 'Tracking Bus ${widget.busId}'
+                      : _selectedBusId != null
+                        ? 'Tracking Bus $_selectedBusId'
+                        : 'My Location')
+                  : 'My Location',
               style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
             const Spacer(),
@@ -529,26 +743,32 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                  ? Colors.green 
-                  : Colors.blue,
+                color: _showRouteMode
+                  ? Colors.blue
+                  : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                    ? Colors.green 
+                    : Colors.blue,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? Icons.gps_fixed 
-                      : Icons.my_location,
+                    _showRouteMode
+                      ? Icons.route
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? Icons.gps_fixed 
+                        : Icons.my_location,
                     size: 14,
                     color: Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? 'TRACKING' 
-                      : 'GPS',
+                    _showRouteMode
+                      ? 'ROUTE'
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? 'TRACKING' 
+                        : 'GPS',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -586,18 +806,24 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: (_isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? Colors.green 
-                      : Colors.blue).withValues(alpha: 0.1),
+                    color: (_showRouteMode
+                      ? Colors.blue
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? Colors.green 
+                        : Colors.blue).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? Icons.directions_bus 
-                      : Icons.my_location,
-                    color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? Colors.green 
-                      : Colors.blue,
+                    _showRouteMode
+                      ? Icons.route
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? Icons.directions_bus 
+                        : Icons.my_location,
+                    color: _showRouteMode
+                      ? Colors.blue
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? Colors.green 
+                        : Colors.blue,
                     size: 24,
                   ),
                 ),
@@ -607,13 +833,15 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isTrackingActive
-                          ? (widget.busId != null 
-                              ? 'Bus ${widget.busId}'
-                              : _selectedBusId != null
-                                ? 'Bus $_selectedBusId'
-                                : 'Your Location')
-                          : 'Your Location',
+                        _showRouteMode
+                          ? 'Bus Route View'
+                          : _isTrackingActive
+                            ? (widget.busId != null 
+                                ? 'Bus ${widget.busId}'
+                                : _selectedBusId != null
+                                  ? 'Bus $_selectedBusId'
+                                  : 'Your Location')
+                            : 'Your Location',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -624,24 +852,32 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                       Row(
                         children: [
                           Icon(
-                            _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                              ? Icons.gps_fixed 
-                              : Icons.location_on,
+                            _showRouteMode
+                              ? Icons.route
+                              : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                                ? Icons.gps_fixed 
+                                : Icons.location_on,
                             size: 16,
-                            color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                              ? Colors.green 
-                              : Colors.blue,
+                            color: _showRouteMode
+                              ? Colors.blue
+                              : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                                ? Colors.green 
+                                : Colors.blue,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                              ? 'Live Tracking' 
-                              : 'GPS Location',
+                            _showRouteMode
+                              ? 'Showing Route'
+                              : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                                ? 'Live Tracking' 
+                                : 'GPS Location',
                             style: TextStyle(
                               fontSize: 14,
-                              color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                                ? Colors.green 
-                                : Colors.blue,
+                              color: _showRouteMode
+                                ? Colors.blue
+                                : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                                  ? Colors.green 
+                                  : Colors.blue,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -653,15 +889,19 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? Colors.green 
-                      : Colors.blue,
+                    color: _showRouteMode
+                      ? Colors.blue
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? Colors.green 
+                        : Colors.blue,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _isTrackingActive && (widget.busId != null || _selectedBusId != null)
-                      ? 'TRACKING' 
-                      : 'ACTIVE',
+                    _showRouteMode
+                      ? 'ROUTE'
+                      : _isTrackingActive && (widget.busId != null || _selectedBusId != null)
+                        ? 'TRACKING' 
+                        : 'ACTIVE',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -689,6 +929,20 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                   subdomains: ['a', 'b', 'c'],
                 ),
+                // Bus route polyline (if in route mode)
+                if (_busRoutePoints.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _busRoutePoints,
+                        strokeWidth: 5.0,
+                        color: Colors.blue,
+                        borderStrokeWidth: 2.0,
+                        borderColor: Colors.white,
+                      ),
+                    ],
+                  ),
+                // Live tracking polyline (if tracking)
                 if (_routePoints.length > 1)
                   PolylineLayer(
                     polylines: [
@@ -701,6 +955,11 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   ),
                 MarkerLayer(
                   markers: [
+                    // Origin marker (route mode)
+                    if (_originMarker != null) _originMarker!,
+                    // Destination marker (route mode)
+                    if (_destinationMarker != null) _destinationMarker!,
+                    // Live tracking bus marker
                     if (_currentDriverLocation != null)
                       Marker(
                         width: 50,
@@ -726,6 +985,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                           ),
                         ),
                       ),
+                    // User location marker
                     if (_currentDeviceLocation != null)
                       Marker(
                         width: 40,
@@ -737,7 +997,8 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                           color: Colors.green,
                         ),
                       ),
-                    ..._nearbyBusMarkers,
+                    // Nearby bus markers (only show if not in route mode)
+                    if (!_showRouteMode) ..._nearbyBusMarkers,
                   ],
                 ),
               ],
@@ -813,17 +1074,22 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   const SizedBox(height: 12),
                 ],
                 
-                // Show clear button when there are route points
-                if (_routePoints.isNotEmpty) ...[
+                // Unified clear button for both route types
+                if (_routePoints.isNotEmpty || _showRouteMode) ...[
                   ElevatedButton.icon(
                     onPressed: () {
-                      setState(() {
-                        _routePoints.clear();
-                        _currentDriverLocation = null;
-                      });
+                      if (_showRouteMode) {
+                        _clearRoute(); // Clear route visualization
+                      } else {
+                        // Clear live tracking route
+                        setState(() {
+                          _routePoints.clear();
+                          _currentDriverLocation = null;
+                        });
+                      }
                     },
-                    icon: const Icon(Icons.clear),
-                    label: const Text('Clear Route'),
+                    icon: Icon(_showRouteMode ? Icons.clear_all : Icons.clear),
+                    label: Text(_showRouteMode ? 'Clear Route View' : 'Clear Tracking'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       minimumSize: const Size(double.infinity, 48),
@@ -834,6 +1100,7 @@ class _BusTrackingScreenState extends State<BusTrackingScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
+
                 // navigation
                 Row(
                   children: [

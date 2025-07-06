@@ -518,16 +518,19 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                   padding: const EdgeInsets.only(bottom: 24, top: 12),
                   child: Row(
                     children: [
-                                              Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => BusTrackingScreen(busId: widget.id),
+                                                                    Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BusTrackingScreen(
+                                  busId: widget.id,
+                                  showRouteOnStart: true,
                                 ),
-                              );
-                            },
+                              ),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColor.primary,
                             shape: RoundedRectangleBorder(
