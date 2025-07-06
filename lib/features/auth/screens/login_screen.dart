@@ -136,72 +136,79 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     });
 
     try {
-      // Check if admin login
-      if (email == 'omar@admin.com') {
-        if (password.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isLoggedIn', true);
-          await prefs.setString('auth_token', 'admin_token_placeholder');
-          await prefs.setString('user_type', 'admin');
-
-          _showSuccessSnackBar("Admin login successful");
-          await Future.delayed(const Duration(milliseconds: 500));
-          
-          if (mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, AppRoutes.adminDashboard, (route) => false);
-          }
-          return;
-        }
-      }
-      
-      if (email == 'omar1@driver.com') {
-        if (password.isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isLoggedIn', true);
-          await prefs.setString('auth_token', 'driver_token_placeholder');
-          await prefs.setString('user_type', 'driver');
-
-          _showSuccessSnackBar("Driver login successful");
-          await Future.delayed(const Duration(milliseconds: 500));
-          
-          if (mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, AppRoutes.driver, (route) => false);
-          }
-          return;
-        }
-      }
-
-      // Regular user login with API
-      final url =
-          Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
+      // API login request
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/login');
       final body = jsonEncode({"email": email, "password": password});
-
       final response = await http.post(url, headers: _headers, body: body);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final String token = data['token'];
+        final List<dynamic> roles = data['roles'] ?? [];
 
         // Store token and login status in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
-        await prefs.setString('user_type', 'user');
 
-        _showSuccessSnackBar("Login successful");
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.newMap, (route) => false);
+        // Navigate based on roles
+        if (roles.contains('Driver')) {
+          await prefs.setString('user_type', 'driver');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Driver login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.driver,
+              (route) => false,
+            );
+          }
+        } else if (roles.contains('Admin')) {
+          await prefs.setString('user_type', 'admin');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Admin login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminDashboard,
+              (route) => false,
+            );
+          }
+        } else {
+          await prefs.setString('user_type', 'user');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.newMap,
+              (route) => false,
+            );
+          }
         }
       } else {
-        _showErrorSnackBar("Login Failed: Wrong Email OR Password");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Login Failed: Wrong Email or Password",
+        );
       }
     } catch (error) {
-      _showErrorSnackBar("Error during login. Please try again.");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Error during login: $error",
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -222,19 +229,25 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
     try {
       final account = await googleSignIn.signIn();
       if (account == null) {
-        _showWarningSnackBar("Google sign-in canceled");
+        CustomSnackBar.showWarning(
+          context: context,
+          message: "Google sign-in canceled",
+        );
         return;
       }
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
-        _showErrorSnackBar("Failed to get Google ID token");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Failed to get Google ID token",
+        );
         return;
       }
 
-      final url = Uri.parse(
-          'http://smarttrackingapp.runasp.net/api/Account/google-login');
+      // Google login API request
+      final url = Uri.parse('http://smarttrackingapp.runasp.net/api/Account/google-login');
       final response = await http.post(
         url,
         headers: _headers,
@@ -244,25 +257,71 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final String token = data['token'];
+        final List<dynamic> roles = data['roles'] ?? [];
 
         // Store token and login status in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('auth_token', token);
-        await prefs.setString('user_type', 'user');
 
-        _showSuccessSnackBar("Google login successful");
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.newMap, (route) => false);
+        // Navigate based on roles
+        if (roles.contains('Driver')) {
+          await prefs.setString('user_type', 'driver');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Driver login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.driver,
+              (route) => false,
+            );
+          }
+        } else if (roles.contains('Admin')) {
+          await prefs.setString('user_type', 'admin');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Admin login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.adminDashboard,
+              (route) => false,
+            );
+          }
+        } else {
+          await prefs.setString('user_type', 'user');
+          CustomSnackBar.showSuccess(
+            context: context,
+            message: "Google login successful",
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.newMap,
+              (route) => false,
+            );
+          }
         }
       } else {
-        _showErrorSnackBar("Google login failed");
+        CustomSnackBar.showError(
+          context: context,
+          message: "Google login failed",
+        );
       }
     } catch (error) {
-      _showErrorSnackBar("Google sign-in error. Please try again.");
+      CustomSnackBar.showError(
+        context: context,
+        message: "Google sign-in error: $error",
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -270,60 +329,6 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
         });
       }
     }
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  void _showWarningSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.warning_outlined, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.orange,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
   }
 
   Widget _buildWelcomeSection() {
@@ -595,49 +600,6 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                           padding: EdgeInsets.zero,
                         ),
                       ],
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Demo accounts info
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.shade200),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.blue.shade600,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Demo Accounts',
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Admin: omar@admin.com\nDriver: omar1@driver.com\nUse any password',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                     
                     const SizedBox(height: 40),

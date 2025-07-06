@@ -269,24 +269,24 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
       backgroundColor: AppColor.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
+        child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: SlideTransition(
                 position: _slideAnimation,
-                child: Column(
+          child: Column(
                   children: [
                     const SizedBox(height: 40),
                     
                     // Back button
-                    Align(
+              Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
@@ -302,9 +302,9 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                             size: 20,
                             color: Colors.black87,
                           ),
-                        ),
-                      ),
-                    ),
+                  ),
+                ),
+              ),
                     
                     const SizedBox(height: 40),
                     
@@ -326,7 +326,7 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                     const SizedBox(height: 32),
                     
                     // Title
-                    const Text(
+              const Text(
                       'Verification Code',
                       style: TextStyle(
                         fontSize: 28,
@@ -350,8 +350,8 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                           const TextSpan(text: 'Enter the 6-digit code sent to\n'),
                           TextSpan(
                             text: email ?? 'your email',
-                            style: TextStyle(
-                              color: AppColor.primary,
+                style: TextStyle(
+                  color: AppColor.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -373,24 +373,24 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: PinCodeTextField(
-                          appContext: context,
-                          length: 6,
-                          obscureText: false,
+                child: PinCodeTextField(
+                  appContext: context,
+                  length: 6,
+                  obscureText: false,
                           animationType: AnimationType.slide,
                           controller: _pinController,
-                          pinTheme: PinTheme(
+                  pinTheme: PinTheme(
                             shape: PinCodeFieldShape.box,
                             borderRadius: BorderRadius.circular(12),
                             fieldHeight: 60,
-                            fieldWidth: 50,
+                    fieldWidth: 50,
                             borderWidth: 2,
-                            activeFillColor: Colors.white,
+                    activeFillColor: Colors.white,
                             inactiveFillColor: Colors.grey.shade50,
                             selectedFillColor: AppColor.primary.withOpacity(0.1),
-                            activeColor: AppColor.primary,
-                            inactiveColor: Colors.grey.shade300,
-                            selectedColor: AppColor.primary,
+                    activeColor: AppColor.primary,
+                    inactiveColor: Colors.grey.shade300,
+                    selectedColor: AppColor.primary,
                             disabledColor: Colors.grey.shade200,
                           ),
                           textStyle: const TextStyle(
@@ -399,17 +399,17 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                             color: Colors.black87,
                           ),
                           cursorColor: AppColor.primary,
-                          animationDuration: const Duration(milliseconds: 300),
-                          enableActiveFill: true,
-                          keyboardType: TextInputType.number,
-                          onCompleted: (v) {
-                            currentText = v;
-                          },
-                          onChanged: (value) {
-                            setState(() => currentText = value);
-                          },
-                        ),
-                      ),
+                  animationDuration: const Duration(milliseconds: 300),
+                  enableActiveFill: true,
+                  keyboardType: TextInputType.number,
+                  onCompleted: (v) {
+                    currentText = v;
+                  },
+                  onChanged: (value) {
+                    setState(() => currentText = value);
+                  },
+                ),
+              ),
                     ),
                     
                     const SizedBox(height: 40),
@@ -417,7 +417,7 @@ class _VerificationScreenState extends State<VerificationScreen> with TickerProv
                     // Verify Button
                     CustomButton(
                       text: 'Verify Code',
-                      onPressed: _verifyCode,
+                  onPressed: _verifyCode,
                       isLoading: _isLoading,
                       width: double.infinity,
                       height: 56,
