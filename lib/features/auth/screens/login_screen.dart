@@ -425,7 +425,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
           
           // Forgot password
           Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.center,
             child: CustomButton(
               text: 'Forgot Password?',
               type: ButtonType.text,

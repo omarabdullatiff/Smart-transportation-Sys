@@ -57,6 +57,9 @@ dev_dependencies:
 
   # The "flutter_lints" package contains a set of recommended lints to encourage good coding practices.
   flutter_lints: ^5.0.0
+  
+  # Flutter launcher icons for generating app icons
+  flutter_launcher_icons: ^0.13.1
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -86,3 +89,27 @@ riverpod_generator: ^2.4.3
 build_runner: ^2.4.13
 freezed: ^2.5.7
 json_serializable: ^6.8.0
+
+# Flutter launcher icons configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "lib/image/appicon.png"
+  min_sdk_android: 21
+  # Adaptive icon configuration for Android
+  adaptive_icon_background: "lib/image/appicon.png"
+  adaptive_icon_foreground: "lib/image/appicon.png"
+  # Remove alpha channel for iOS to ensure full coverage
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "lib/image/appicon.png"
+    background_color: "#ffffff"
+    theme_color: "#000000"
+  windows:
+    generate: true
+    image_path: "lib/image/appicon.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "lib/image/appicon.png"

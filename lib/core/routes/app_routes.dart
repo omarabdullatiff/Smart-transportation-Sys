@@ -47,7 +47,11 @@ class AppRoutes {
       loses: (context) => ReportItemPage(),
       busList: (context) => const BusListView(),
       setting: (context) => const SettingsScreen(),
-      seatSelect: (context) => const SeatSelectionScreen(),
+      seatSelect: (context) => const SeatSelectionScreen(
+        busId: '1',
+        origin: 'Origin',
+        destination: 'Destination',
+      ),
       profile: (context) => const EditProfileScreen(),
       verification: (context) => const VerificationScreen(),
       foundItem: (context) => const FoundItemsScreen(),

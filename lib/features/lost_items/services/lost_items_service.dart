@@ -6,35 +6,55 @@ import '../models/lost_items.dart';
 
 class LostItemsService {
   static const String baseUrl = 'http://smarttrackingapp.runasp.net/api/LostItems';
+  static const String addLostItemUrl = 'http://smarttrackingapp.runasp.net/api/LostItems/add-lost-item';
 
   static Future<bool> reportLostItem(LostItem item, {File? imageFile}) async {
     try {
-      String photoUrl = 'https://via.placeholder.com/150'; // Default placeholder
+      // Create multipart request
+      var request = http.MultipartRequest('POST', Uri.parse(addLostItemUrl));
       
+      // Add headers
+      request.headers.addAll({
+        'accept': '*/*',
+      });
+
+      // Add form fields
+      request.fields['BusNumber'] = item.busNumber;
+      request.fields['Description'] = item.description;
+      request.fields['ContactName'] = item.contactName;
+      request.fields['ContactPhone'] = item.contactPhone;
+      request.fields['PhotoUrl'] = item.photoUrl ?? 'https://via.placeholder.com/150';
+      request.fields['ReportedAt'] = item.dateLost.toIso8601String();
+
+      // Add photo file if provided
       if (imageFile != null) {
-        final bytes = await imageFile.readAsBytes();
-        photoUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        try {
+          var photoFile = await http.MultipartFile.fromPath(
+            'photo',
+            imageFile.path,
+            filename: 'lost_item_photo.jpg',
+          );
+          request.files.add(photoFile);
+          debugPrint('Photo file added: ${imageFile.path}');
+        } catch (e) {
+          debugPrint('Error adding photo file: $e');
+          // Continue without photo if file handling fails
+        }
       }
 
-      final lostItem = LostItem(
-        description: item.description,
-        dateLost: item.dateLost,
-        busNumber: item.busNumber,
-        contactName: item.contactName,
-        contactPhone: item.contactPhone,
-        photoUrl: photoUrl,
-      );
+      debugPrint('Sending multipart request to: $addLostItemUrl');
+      debugPrint('Form fields: ${request.fields}');
+      debugPrint('Files count: ${request.files.length}');
 
-      final response = await http.post(
-        Uri.parse(baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': '*/*',
-        },
-        body: jsonEncode(lostItem.toJson()),
-      );
+      // Send the request
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Lost item reported successfully');
         return true;
       } else {
         debugPrint('Failed to report lost item. Status Code: ${response.statusCode}');
