@@ -37,6 +37,10 @@ class BusListView extends StatelessWidget {
         backgroundColor: AppColor.background,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColor.primary, size: 28),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'All Buses',
           style: const TextStyle(
@@ -46,7 +50,6 @@ class BusListView extends StatelessWidget {
             letterSpacing: 0.5,
           ),
         ),
-        automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: BusService.fetchAllBuses(),

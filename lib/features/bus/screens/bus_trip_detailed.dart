@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:flutter_application_1/features/bus/screens/bus_schedule_page.dart';
 import 'package:flutter_application_1/features/bus/screens/bus_tracking_screen.dart';
+import 'package:flutter_application_1/features/bus/screens/seat_selection_screen.dart';
 
 class BusTripDetailedScreen extends StatefulWidget {
   final String id;
@@ -26,14 +27,16 @@ class BusTripDetailedScreen extends StatefulWidget {
 
 class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
   late Future<Map<String, dynamic>> tripFuture;
+  late Future<Map<String, dynamic>> abstractFuture;
 
   @override
   void initState() {
     super.initState();
-    tripFuture = fetchTrip(widget.id);
+    tripFuture = fetchTripDetails(widget.id);
+    abstractFuture = fetchTripAbstract(widget.id);
   }
 
-  Future<Map<String, dynamic>> fetchTrip(String id) async {
+  Future<Map<String, dynamic>> fetchTripDetails(String id) async {
     try {
       final response = await http.get(
         Uri.parse('http://smarttrackingapp.runasp.net/api/Bus/$id/trip-details'),
@@ -42,10 +45,31 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        debugPrint('API Response: $data'); // Debug logging
+        debugPrint('Trip Details API Response: $data'); // Debug logging
         return data;
       } else {
-        debugPrint('API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('Trip Details API Error: ${response.statusCode} - ${response.body}');
+        throw Exception('API returned ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Network Error: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchTripAbstract(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://smarttrackingapp.runasp.net/api/Busv2/$id/abstract'),
+        headers: {'accept': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('Abstract API Response: $data'); // Debug logging
+        return data;
+      } else {
+        debugPrint('Abstract API Error: ${response.statusCode} - ${response.body}');
         throw Exception('API returned ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
@@ -68,8 +92,8 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: FutureBuilder<Map<String, dynamic>>(
-          future: tripFuture,
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: Future.wait([tripFuture, abstractFuture]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -112,7 +136,8 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                       ElevatedButton(
                         onPressed: () {
                           setState(() {
-                            tripFuture = fetchTrip(widget.id);
+                            tripFuture = fetchTripDetails(widget.id);
+                            abstractFuture = fetchTripAbstract(widget.id);
                           });
                         },
                         child: const Text('Retry'),
@@ -121,14 +146,16 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                   ),
                 ),
               );
-            } else if (!snapshot.hasData) {
+            } else if (!snapshot.hasData || snapshot.data!.length != 2) {
               return const Center(child: Text('No trip details found'));
             }
             
-            final trip = snapshot.data!;
+            final trip = snapshot.data![0]; // Trip details with stops
+            final abstract = snapshot.data![1]; // Abstract with origin/destination
             debugPrint('Trip data keys: ${trip.keys.toList()}'); // Debug logging
+            debugPrint('Abstract data keys: ${abstract.keys.toList()}'); // Debug logging
             
-            // Use fallback values and multiple possible field names
+            // Use fallback values and multiple possible field names from trip details
             final busNumber = trip['busNumber']?.toString() ?? 
                              trip['number']?.toString() ?? 
                              widget.number;
@@ -141,7 +168,11 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                                trip['to']?.toString() ?? 
                                widget.end;
             
-            // Handle different possible structures for stops
+            // Use abstract API for seat booking origin/destination (cleaner data)
+            final seatOrigin = abstract['origin']?.toString() ?? origin;
+            final seatDestination = abstract['destination']?.toString() ?? destination;
+            
+            // Handle different possible structures for stops from trip details
             List stops = [];
             if (trip['stops'] != null) {
               stops = trip['stops'] is List ? trip['stops'] : [];
@@ -302,6 +333,33 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.orange,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.attach_money,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Price: 25 LE',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -444,7 +502,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                       ),
                 ),
                 
-                // Price section
+                // Seat Selection Section
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
                   padding: const EdgeInsets.all(16),
@@ -465,7 +523,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          Icons.monetization_on,
+                          Icons.event_seat,
                           color: Colors.white,
                           size: 20,
                         ),
@@ -476,7 +534,7 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Trip Price',
+                              'Seat Booking',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -485,9 +543,9 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              '25 LE',
+                              'Choose your seat',
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
@@ -495,17 +553,31 @@ class _BusTripDetailedScreenState extends State<BusTripDetailedScreen> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SeatSelectionScreen(
+                                busId: widget.id,
+                                origin: seatOrigin,
+                                destination: seatDestination,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         child: const Text(
-                          'Fixed Rate',
+                          'Select Seat',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
